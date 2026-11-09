@@ -14,7 +14,7 @@ Superfast phone screenshot review app. Take a screenshot, then crop, annotate, c
 - Discarded screenshots are deleted (rows and files) when Triage is left and on app start.
 - Edits are non-destructive: originals are kept, crop and annotations are vector data rendered on export.
 - Redactions are baked into exported pixels. Originals are excluded from exports by default, with an explicit toggle to include them.
-- Exports: Claude pack (Markdown plus images ZIP with captions, pins and a review brief), PDF, long stitched image, share images.
+- Exports: Claude pack (Markdown plus images ZIP with captions, pins and a review brief), PDF, long stitched image, share images. All built from images rendered by `renderShotPng` (`lib/export/render_shot.dart`), which uses the editor's `paintEdit`, so crop, marks and redactions are baked into pixels before anything is written. `ExportService` writes to a temp folder that is cleared before each export and at launch, then hands the files to the system share sheet (`share_plus`). Originals are only added to the Claude pack and Share images, and only if the switch is on; PDF and long image never carry them. A long album is split into numbered long-image parts (max 7000px each).
 - Pins carry a severity: Bug, UX or A11y. Each has a letter, a shape and a colour, so colour is never the only signal.
 - Brand: name Fluo. Wordmark FLUO in Lexend 600, +0.14em tracking, lime on dark. App icon is the stacked F L / U O on a dark tile. No separate F mark and no highlighter stroke in the logo.
 - Default theme is neon lime `#C8FF3D` on dark; Settings offers other colours. The logo stays lime in every theme.

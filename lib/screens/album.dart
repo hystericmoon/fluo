@@ -62,7 +62,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                 label: 'Export',
                 icon: LucideIcons.upload,
                 kind: BtnKind.primary,
-                onPressed: kept.isEmpty ? null : () => _push(const ExportScreen()),
+                onPressed: kept.isEmpty ? null : () => _push(ExportScreen(albumId: widget.albumId)),
               ),
             ],
           ),

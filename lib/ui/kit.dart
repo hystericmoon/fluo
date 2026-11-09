@@ -337,22 +337,28 @@ class SwitchRow extends StatelessWidget {
     required this.onChanged,
     this.accent = FluoColors.lime,
     this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    this.enabled = true,
   });
   final String title;
   final String help;
   final bool value;
   final ValueChanged<bool> onChanged;
+
+  /// Off: dimmed and not tappable (the setting does not apply right now).
+  final bool enabled;
   final Color accent;
   final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Pressable(
-      onTap: () => onChanged(!value),
+      onTap: enabled ? () => onChanged(!value) : null,
       toggled: value,
       label: '$title. $help',
       radius: 8,
-      builder: (_, _) => ConstrainedBox(
+      builder: (_, _) => Opacity(
+        opacity: enabled ? 1 : 0.5,
+        child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 56),
         child: Padding(
           padding: padding,
@@ -372,6 +378,7 @@ class SwitchRow extends StatelessWidget {
             _Track(on: value, accent: accent),
           ]),
         ),
+      ),
       ),
     );
   }

@@ -5,7 +5,6 @@ import 'package:fluo/capture/capture_source.dart';
 import 'package:fluo/data/models.dart';
 import 'package:fluo/main.dart';
 import 'package:fluo/screens/albums.dart';
-import 'package:fluo/screens/export.dart';
 import 'package:fluo/screens/settings.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
@@ -15,7 +14,7 @@ import 'support/harness.dart';
 void main() {
   testWidgets('splash then an empty Albums screen on a fresh install', (tester) async {
     setPhone(tester);
-    await tester.pumpWidget(FluoApp(repo: memRepo(), source: FakeSource()));
+    await tester.pumpWidget(FluoApp(repo: memRepo(), source: FakeSource(), exports: testExports()));
     expect(find.text('FLUO'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1300));
     await tester.pumpAndSettle();
@@ -30,7 +29,7 @@ void main() {
     final a = repo.createAlbum('A');
     final s = await seedShots(tester, repo, a.id, 2);
     repo.setStatus(s[0].id, ShotStatus.discarded);
-    await tester.pumpWidget(FluoApp(repo: repo, source: FakeSource()));
+    await tester.pumpWidget(FluoApp(repo: repo, source: FakeSource(), exports: testExports()));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
     expect(repo.getShot(s[0].id), isNull);
     expect(File(s[0].originalPath).existsSync(), isFalse);
@@ -197,7 +196,7 @@ void main() {
     addTearDown(() => f.deleteSync());
     src.inbox.add(IncomingShot(path: f.path, capturedAt: DateTime(2026, 11, 9)));
 
-    await tester.pumpWidget(FluoApp(repo: repo, source: src));
+    await tester.pumpWidget(FluoApp(repo: repo, source: src, exports: testExports()));
     await tester.pump(const Duration(milliseconds: 1300));
     await tester.pumpAndSettle();
     expect(find.text('Needs photo access'), findsOneWidget, reason: 'denied at launch');
@@ -216,18 +215,6 @@ void main() {
     expect(find.text('Review 1 new'), findsOneWidget, reason: 'the waiting screenshot was imported');
   });
 
-  testWidgets('export notice changes when originals are included', (tester) async {
-    setPhone(tester);
-    await tester.pumpWidget(host(const ExportScreen()));
-    expect(find.text('2 redactions are baked in'), findsOneWidget);
-    await tester.tap(find.text('Include original screenshots'));
-    await tester.pumpAndSettle();
-    expect(find.text('Originals still contain what you hid'), findsOneWidget);
-    await tester.tap(find.text('PDF'));
-    await tester.pumpAndSettle();
-    expect(find.text('Export PDF'), findsOneWidget);
-  });
-
   testWidgets('settings: Wi-Fi row hides when auto-update is off', (tester) async {
     setPhone(tester);
     await tester.pumpWidget(host(const SettingsScreen()));
@@ -241,7 +228,6 @@ void main() {
     final screens = <String, Widget>{
       // Triage, Album and Editor need real shots: see their own test files.
       'Albums': const AlbumsScreen(),
-      'Export': const ExportScreen(),
       'Settings': const SettingsScreen(),
     };
     for (final e in screens.entries) {

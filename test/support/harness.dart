@@ -4,6 +4,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fluo/capture/capture_controller.dart';
+import 'package:fluo/export/export_scope.dart';
+import 'package:fluo/export/export_service.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:fluo/capture/capture_scope.dart';
 import 'package:fluo/data/db.dart';
 import 'package:fluo/data/file_store.dart';
@@ -13,6 +16,7 @@ import 'package:fluo/data/repository.dart';
 import 'package:fluo/theme/app_theme.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import 'fake_share.dart';
 import 'fake_source.dart';
 
 FluoRepo memRepo() {
@@ -23,18 +27,35 @@ FluoRepo memRepo() {
   return repo;
 }
 
-Widget host(Widget home, {FluoRepo? repo, FakeSource? source}) {
+/// Export settings for tests: a temp folder, a recording share sheet and a
+/// built-in PDF font (so no asset loading).
+ExportServices testExports([FakeShare? share]) {
+  final dir = Directory.systemTemp.createTempSync('fluo_exp_');
+  addTearDown(() {
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+  });
+  return ExportServices(
+    share: share ?? FakeShare(),
+    workDir: () async => Directory('${dir.path}/out'),
+    pdfFont: () async => pw.Font.helvetica(),
+  );
+}
+
+Widget host(Widget home, {FluoRepo? repo, FakeSource? source, ExportServices? exports}) {
   final r = repo ?? memRepo();
   final c = CaptureController(r, source ?? FakeSource());
   addTearDown(c.dispose);
   return RepoScope(
     repo: r,
-    child: CaptureScope(
-      controller: c,
-      child: ShadcnApp(
-        debugShowCheckedModeBanner: false,
-        theme: fluoTheme(),
-        home: home,
+    child: ExportScope(
+      services: exports ?? testExports(),
+      child: CaptureScope(
+        controller: c,
+        child: ShadcnApp(
+          debugShowCheckedModeBanner: false,
+          theme: fluoTheme(),
+          home: home,
+        ),
       ),
     ),
   );

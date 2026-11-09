@@ -1,12 +1,12 @@
 Last updated 2026-11-09
 
 ## Next up
-Session 7: Exporters. Claude pack (Markdown plus images ZIP), PDF, long stitched image, share. Use `paintEdit` from `lib/edit/render.dart` to render each screen (crop, marks, pins, redactions) with `EditViewport(box: Size(regionPxW, regionPxH), ...)`. Done when redacted areas are solid in every export and originals are excluded by default.
+Session 8: Motion and access. Motion kit (Stack, Swipe Row with Fuse undo, Hold Button, Refine Frame, Star Border), reduced motion, tap alternatives for every gesture, a button alternative for reordering screens, TalkBack actions. Done when the TalkBack pass has no unreachable action.
 
-Still owed from sessions 1 to 6: run on a physical Android device. Nothing has run on hardware. The Editor in particular needs real fingers: drawing, dragging pins, the crop frame.
+Still owed from sessions 1 to 7: run on a physical Android device. Nothing has run on hardware. For exports: try each of the four formats and open the result in the app you would really send it to (Claude, Messages, Drive).
 
 ## Open items
-- Session 5: Albums, Triage, Album and Editor are real. Export (session 7) and Settings (session 9) still show fixed content. Export says "19 screens, 10 pins" and "2 redactions" whatever the album holds.
+- Session 7: Albums, Triage, Album, Editor and Export are real. Only Settings (session 9) still shows fixed content.
 - Session 3: `Shot.width` and `height` are optional because reading them needs an image decode; the capture plugin should supply them.
 - Session 3: deleting a pin renumbers the rest, so pin numbers in an exported Claude pack can change between exports. Fine for now; revisit if pins need stable IDs in exports.
 - Session 3: no migration beyond v1 exists, so the first real migration is untested. Test it when one is added.
@@ -27,6 +27,12 @@ Still owed from sessions 1 to 6: run on a physical Android device. Nothing has r
 - Session 6: the crop is only applied on export; the canvas shows the cropped view when the crop tool is closed.
 - Session 6: large screenshots are decoded at 1600px wide in the Editor. Exports (session 7) should decode at full size.
 - Session 6: tests found that `SingleChildScrollView` steals vertical drags from a stock `GestureDetector`/pan; `QuickPanGestureRecognizer` (8px) fixes it. Keep using it for any new drag surface inside a scrolling page. The same tests found a Semantics container that swallowed its buttons: containers that hold controls need `explicitChildNodes: true`.
+- Session 7: not verified on a device: the share sheet (`share_plus` provider is in the manifest), opening the ZIP or PDF in other apps, and memory use when exporting a long album of full-size screenshots (they are decoded at up to 4096px wide, one at a time).
+- Session 7: the PDF uses the bundled Lexend font, which covers Latin scripts. Captions or notes in other scripts (Arabic, CJK, Cyrillic) show as empty boxes in the PDF only. The ZIP, Markdown and images are unaffected. Fix by bundling a wider font (Noto) if that matters.
+- Session 7: the review brief is a fixed template (`briefText` in `lib/export/markdown.dart`). The v2 idea of an editable review-prompt preface is still open.
+- Session 7: the long image is cut into numbered parts above 7000px tall (a 19-screen album is about 3 parts). One scrolling image is not always possible on phones.
+- Session 7: the PDF cannot be checked for pixel content in tests (it compresses images). Its pages are built from the same baked PNG bytes the other formats use, which are pixel-tested.
+- Session 7: exports are written to the app cache and shared as files. If the share sheet fails after the files are written they stay until the next export or app start.
 - Session 2: screens use fake data from `lib/data/fake_data.dart`; buttons that need real logic are inert (Keep, Discard, Undo, Pause, New album, Export, Check for updates). Each is owned by a later session.
 - Session 2: the accent colour is fixed lime in `lib/ui/kit.dart`. Settings only recolours its own preview. Session 9 must route the accent through the theme.
 - Session 2: pin badges are lettered circles as in the mocks. Severity chips and dots use shape too. Decide in session 6 whether badges on the canvas also need a shape per severity (CLAUDE.md: letter, shape and colour).
@@ -46,3 +52,4 @@ Still owed from sessions 1 to 6: run on a physical Android device. Nothing has r
 - 2026-11-09: Session 4 capture. Schema v2 (sessions, the first real migration, tested on an upgraded v1 database). Kotlin watcher service, channel and inbox; Dart CaptureController and session card with permission states. 67 Flutter tests and 11 Kotlin tests. Debug APK builds; merged manifest checked.
 - 2026-11-09: Session 5 triage and album. Triage (Keep, Discard, Undo, names, flick with button and TalkBack alternatives) and the Album screen (Grid, Flow order, severity filters, real thumbnails) read and write the database. 100 tests, including a 10-shot session sorted into an album. Fixed a false "Needs photo access" flash on the session card.
 - 2026-11-09: Session 6 editor. Crop, pen, arrow, box, pins with severity (shape, letter, colour), redact and captions, stored as vector data. One shared renderer; redaction proven opaque by pixel tests. Discarded screenshots now deleted. About 179 tests. Fixed: vertical strokes scrolling the page, drags starting 18px late, merged semantics containers, zero-length pen strokes.
+- 2026-11-09: Session 7 exporters. Claude pack ZIP, PDF, long image and share images, built from one baked render. Redactions proven solid in every format by pixel tests; originals excluded by default and never in PDF or long image. Export screen is real: counts, notices, progress, errors. 225 tests.
