@@ -275,6 +275,65 @@ void main() {
     });
   });
 
+  group('moveKept', () {
+    test('swaps a kept screen with its neighbour in the order people see', () async {
+      final a = repo.createAlbum('A');
+      final s = [for (var i = 0; i < 4; i++) await repo.addShot(a.id, shot('m$i.png', [i]))];
+      for (final x in s) {
+        repo.setStatus(x.id, ShotStatus.kept);
+      }
+      repo.moveKept(a.id, s[2].id, -1);
+      expect(repo.shotsIn(a.id, status: ShotStatus.kept).map((x) => x.id), [s[0].id, s[2].id, s[1].id, s[3].id]);
+      repo.moveKept(a.id, s[2].id, -1);
+      repo.moveKept(a.id, s[2].id, -1); // already first: nothing happens
+      expect(repo.shotsIn(a.id, status: ShotStatus.kept).first.id, s[2].id);
+      repo.moveKept(a.id, s[3].id, 1); // already last
+      expect(repo.shotsIn(a.id, status: ShotStatus.kept).last.id, s[3].id);
+    });
+
+    test('pending and discarded shots keep their places between kept ones', () async {
+      final a = repo.createAlbum('A');
+      final s = [for (var i = 0; i < 5; i++) await repo.addShot(a.id, shot('n$i.png', [i]))];
+      repo.setStatus(s[0].id, ShotStatus.kept);
+      repo.setStatus(s[2].id, ShotStatus.kept);
+      repo.setStatus(s[4].id, ShotStatus.kept);
+      repo.setStatus(s[1].id, ShotStatus.discarded);
+      // s[3] stays pending
+      repo.moveKept(a.id, s[4].id, -1);
+      expect(repo.shotsIn(a.id).map((x) => x.id), [s[0].id, s[1].id, s[4].id, s[3].id, s[2].id],
+          reason: 'only the kept slots (0, 2, 4) were reassigned');
+      expect(repo.shotsIn(a.id, status: ShotStatus.kept).map((x) => x.id), [s[0].id, s[4].id, s[2].id]);
+    });
+
+    test('a shot that is not kept, or not in the album, is ignored', () async {
+      final a = repo.createAlbum('A');
+      final s = await repo.addShot(a.id, shot('o.png', [1]));
+      repo.moveKept(a.id, s.id, 1);
+      repo.moveKept(a.id, 'nope', -1);
+      expect(repo.getShot(s.id)!.position, 0);
+    });
+
+    test('survives a restart', () async {
+      final a = repo.createAlbum('A');
+      final s = [for (var i = 0; i < 3; i++) await repo.addShot(a.id, shot('q$i.png', [i]))];
+      for (final x in s) {
+        repo.setStatus(x.id, ShotStatus.kept);
+      }
+      repo.moveKept(a.id, s[0].id, 1);
+      repo.close();
+      repo = openRepo();
+      expect(repo.shotsIn(a.id, status: ShotStatus.kept).map((x) => x.id), [s[1].id, s[0].id, s[2].id]);
+    });
+  });
+
+  test('updateAnnotation replaces the stored geometry', () async {
+    final a = repo.createAlbum('A');
+    final s = await repo.addShot(a.id, shot('u.png', [1]));
+    final ann = repo.addAnnotation(s.id, AnnotationKind.box, {'rect': [.1, .1, .2, .2]});
+    repo.updateAnnotation(ann.id, {'rect': [.3, .3, .6, .5]});
+    expect(repo.annotationsFor(s.id).single.data['rect'], [.3, .3, .6, .5]);
+  });
+
   group('purgeDiscarded', () {
     test('removes discarded shots, their pins and files, and closes the gaps; keeps the rest', () async {
       final a = repo.createAlbum('A');

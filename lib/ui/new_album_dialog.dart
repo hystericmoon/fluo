@@ -80,8 +80,7 @@ class _NewAlbumDialogState extends State<_NewAlbumDialog> {
                         height: 44,
                         child: Semantics(
                           label: 'Album name',
-                          textField: true,
-                          child: TextField(
+                                        child: TextField(
                             controller: _c,
                             autofocus: true,
                             placeholder: const Text('For example, Checkout flow'),

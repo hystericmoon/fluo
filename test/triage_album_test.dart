@@ -195,6 +195,34 @@ void main() {
       expect(repo.getShot(s[2].id)!.status, ShotStatus.pending);
     });
 
+    testWidgets('with motion on, the next card settles into place and then everything is still', (tester) async {
+      setPhone(tester);
+      final repo = memRepo();
+      final a = repo.createAlbum('A');
+      await seedShots(tester, repo, a.id, 3);
+      await tester.pumpWidget(host(TriageScreen(albumId: a.id), repo: repo, reduceMotion: false));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Keep'));
+      await tester.pump(); // the next card starts tilted and eases in
+      expect(tester.hasRunningAnimations, isTrue);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(tester.hasRunningAnimations, isFalse);
+      expect(find.text('A · 2 of 3'), findsOneWidget);
+    });
+
+    testWidgets('with reduced motion the next card appears at once', (tester) async {
+      setPhone(tester);
+      final repo = memRepo();
+      final a = repo.createAlbum('A');
+      await seedShots(tester, repo, a.id, 3);
+      await tester.pumpWidget(host(TriageScreen(albumId: a.id), repo: repo));
+      await tester.tap(find.text('Keep'));
+      await tester.pump();
+      await tester.pump();
+      expect(tester.hasRunningAnimations, isFalse);
+      expect(find.text('A · 2 of 3'), findsOneWidget);
+    });
+
     testWidgets('an album with nothing pending says so', (tester) async {
       setPhone(tester);
       final repo = memRepo();

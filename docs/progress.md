@@ -1,9 +1,9 @@
 Last updated 2026-11-09
 
 ## Next up
-Session 8: Motion and access. Motion kit (Stack, Swipe Row with Fuse undo, Hold Button, Refine Frame, Star Border), reduced motion, tap alternatives for every gesture, a button alternative for reordering screens, TalkBack actions. Done when the TalkBack pass has no unreachable action.
+Session 9: Settings and updates. Colour themes (route the accent through the theme: it is fixed lime in `lib/ui/kit.dart` today), the in-app "Reduce motion" switch (`MotionScope` exists, wire `FluoApp.reduceMotion`), the auto-update mechanism, version display. Check every theme's colours with `lib/theme/contrast.dart` the way `test/contrast_test.dart` does. Done when a theme change applies across all screens.
 
-Still owed from sessions 1 to 7: run on a physical Android device. Nothing has run on hardware. For exports: try each of the four formats and open the result in the app you would really send it to (Claude, Messages, Drive).
+Still owed from sessions 1 to 8: run on a physical Android device, and the manual TalkBack script in `docs/accessibility.md`. Nothing has run on hardware.
 
 ## Open items
 - Session 7: Albums, Triage, Album, Editor and Export are real. Only Settings (session 9) still shows fixed content.
@@ -16,7 +16,7 @@ Still owed from sessions 1 to 7: run on a physical Android device. Nothing has r
 - Session 4: screenshots taken while paused, or with no session, are dropped (originals stay in the gallery). Intended.
 - Session 4: the watcher does not restart after a reboot. The session survives in the database and sync resumes watching the next time the app opens.
 - Session 4 (release, session 10): the service uses the `specialUse` foreground type. Google Play needs a declaration and a justification for it in the Play Console. The manifest property text is a draft. Also the debug build has the INTERNET permission (Flutter hot reload); confirm the release build has none, to back the local-only claim.
-- Session 5: Flow order is capture order. There is no way to reorder screens yet (mocks do not show one). When it is built it needs buttons as well as drag (WCAG 2.5.7), see the item below.
+- Session 8: DONE: screens can be reordered with buttons (Reorder screens mode, plus TalkBack actions). There is no drag reorder; buttons were enough and need no alternative.
 - Session 5: Done in Triage leaves unsorted shots pending (they stay in "Review N new").
 - Session 6: DECIDED (user was away): discarded screenshots are deleted, rows and files, when Triage is left and on app start. Change `purgeDiscarded` calls if you want a trash instead.
 - Session 5: filter chips count screens that have at least one pin of that severity, not pins. The mock does not say which.
@@ -33,13 +33,17 @@ Still owed from sessions 1 to 7: run on a physical Android device. Nothing has r
 - Session 7: the long image is cut into numbered parts above 7000px tall (a 19-screen album is about 3 parts). One scrolling image is not always possible on phones.
 - Session 7: the PDF cannot be checked for pixel content in tests (it compresses images). Its pages are built from the same baked PNG bytes the other formats use, which are pixel-tested.
 - Session 7: exports are written to the app cache and shared as files. If the share sheet fails after the files are written they stay until the next export or app start.
+- Session 8: the accent colour is still fixed lime; the in-app reduce-motion switch exists as `FluoApp.reduceMotion` but nothing sets it yet (session 9).
+- Session 8: tests use reduced motion by default (`host(reduceMotion: true)`) because the live border on the session card never stops animating, so `pumpAndSettle` would never finish. Pass `reduceMotion: false` to test motion. After a delete, use `pump()` not `pumpAndSettle()`: the undo fuse is an animation and settling lets it burn.
+- Session 8: shadcn_flutter has its own Row, Column and Flex that do not raise RenderFlex overflow errors, so overflow cannot be caught by tests. Text scaling is checked by control size instead (`test/text_scale_test.dart`). Beware of long text in new rows: use `Expanded` plus ellipsis.
+- Session 8: the audit found and fixed: text fields with no accessible name (the wrapper and the field were two conflicting nodes), a squeezed control row at large text, and a warning border below 3:1.
+- Session 8: the freehand pen has no non-gesture route. Revisit if that matters.
 - Session 2: screens use fake data from `lib/data/fake_data.dart`; buttons that need real logic are inert (Keep, Discard, Undo, Pause, New album, Export, Check for updates). Each is owned by a later session.
 - Session 2: the accent colour is fixed lime in `lib/ui/kit.dart`. Settings only recolours its own preview. Session 9 must route the accent through the theme.
 - Session 2: pin badges are lettered circles as in the mocks. Severity chips and dots use shape too. Decide in session 6 whether badges on the canvas also need a shape per severity (CLAUDE.md: letter, shape and colour).
 - Session 2: `refs/mocks/*.dc.html` load `./support.js`, which is not in the repo, so the mocks cannot be opened as pages. Screens were built from their markup.
 - Session 2: no stub for the version string yet. Settings shows a fixed `Version 0.1.0`.
 - Session 1: Settings button border uses `borderStrong` (#6B6B76). Re-check the other shadcn outline controls against the 3:1 floor in session 2.
-- No button alternative for drag-reorder yet (session 8).
 - Check Fluo trademark, domain and store names (session 10).
 - Check the React Bits license before porting anything (session 10).
 - Auto-update mechanism not decided.
@@ -53,3 +57,4 @@ Still owed from sessions 1 to 7: run on a physical Android device. Nothing has r
 - 2026-11-09: Session 5 triage and album. Triage (Keep, Discard, Undo, names, flick with button and TalkBack alternatives) and the Album screen (Grid, Flow order, severity filters, real thumbnails) read and write the database. 100 tests, including a 10-shot session sorted into an album. Fixed a false "Needs photo access" flash on the session card.
 - 2026-11-09: Session 6 editor. Crop, pen, arrow, box, pins with severity (shape, letter, colour), redact and captions, stored as vector data. One shared renderer; redaction proven opaque by pixel tests. Discarded screenshots now deleted. About 179 tests. Fixed: vertical strokes scrolling the page, drags starting 18px late, merged semantics containers, zero-length pen strokes.
 - 2026-11-09: Session 7 exporters. Claude pack ZIP, PDF, long image and share images, built from one baked render. Redactions proven solid in every format by pixel tests; originals excluded by default and never in PDF or long image. Export screen is real: counts, notices, progress, errors. 225 tests.
+- 2026-11-09: Session 8 motion and access. Motion kit (Hold Button, Swipe Row, Undo Fuse, live border, crop frame entry, card entrance) with reduced motion; delete album with undo; button reordering; buttons for adding and moving boxes, arrows and redactions; contrast, label, 44dp, large-text and keyboard audits; docs/accessibility.md.

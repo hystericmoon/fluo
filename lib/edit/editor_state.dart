@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../data/models.dart';
 import '../data/repository.dart';
 import 'geometry.dart';
+import 'render.dart' show arrowOf, pointsOf, rectOf;
 
 enum EditTool { crop, pen, arrow, box, pin, redact }
 
@@ -128,19 +129,102 @@ class EditorState extends ChangeNotifier {
     });
   }
 
+  // ---- without dragging --------------------------------------------------
+
+  /// A box, redaction or arrow made from a button: placed in the middle of
+  /// the visible picture and selected, ready to move and resize with
+  /// [nudgeSelected] and [resizeSelected].
+  Annotation? addDefaultShape(AnnotationKind kind) {
+    final c = shot.crop ?? const CropRect(0, 0, 1, 1);
+    final cx = (c.left + c.right) / 2, cy = (c.top + c.bottom) / 2;
+    final w = c.right - c.left, h = c.bottom - c.top;
+    switch (kind) {
+      case AnnotationKind.box:
+      case AnnotationKind.redact:
+        return addRect(kind, Offset(cx - w * .25, cy - h * .06), Offset(cx + w * .25, cy + h * .06));
+      case AnnotationKind.arrow:
+        return addArrow(Offset(cx - w * .2, cy), Offset(cx + w * .2, cy));
+      case AnnotationKind.pen:
+        return null; // a freehand line needs a finger
+    }
+  }
+
+  /// Moves the selected pin or mark by a fraction of the image, keeping it
+  /// inside the picture.
+  void nudgeSelected(double dx, double dy) {
+    final pin = selectedPin;
+    if (pin != null) {
+      movePin(pin.id, Offset(pin.x + dx, pin.y + dy));
+      return;
+    }
+    final a = selectedAnnotation;
+    if (a == null) return;
+    final pts = <Offset>[
+      ...pointsOf(a),
+      if (rectOf(a) != null) ...[rectOf(a)!.topLeft, rectOf(a)!.bottomRight],
+      if (arrowOf(a) != null) ...[arrowOf(a)!.$1, arrowOf(a)!.$2],
+    ];
+    if (pts.isEmpty) return;
+    // Shift as far as it can go without any point leaving the image.
+    final minX = pts.map((p) => p.dx).reduce((x, y) => x < y ? x : y);
+    final maxX = pts.map((p) => p.dx).reduce((x, y) => x > y ? x : y);
+    final minY = pts.map((p) => p.dy).reduce((x, y) => x < y ? x : y);
+    final maxY = pts.map((p) => p.dy).reduce((x, y) => x > y ? x : y);
+    final mx = dx.clamp(-minX, 1 - maxX).toDouble();
+    final my = dy.clamp(-minY, 1 - maxY).toDouble();
+    Offset m(Offset o) => Offset(o.dx + mx, o.dy + my);
+    _repo.updateAnnotation(a.id, switch (a.kind) {
+      AnnotationKind.pen => {'points': [for (final p in pointsOf(a)) [m(p).dx, m(p).dy]]},
+      AnnotationKind.arrow => {
+          'from': [m(arrowOf(a)!.$1).dx, m(arrowOf(a)!.$1).dy],
+          'to': [m(arrowOf(a)!.$2).dx, m(arrowOf(a)!.$2).dy],
+        },
+      AnnotationKind.box || AnnotationKind.redact => {
+          'rect': [m(rectOf(a)!.topLeft).dx, m(rectOf(a)!.topLeft).dy, m(rectOf(a)!.bottomRight).dx, m(rectOf(a)!.bottomRight).dy],
+        },
+    });
+    _changed();
+  }
+
+  /// Grows or shrinks the selected box or redaction around its centre by
+  /// [dw] and [dh] (fractions of the image), or lengthens an arrow by [dw].
+  void resizeSelected(double dw, double dh) {
+    final a = selectedAnnotation;
+    if (a == null) return;
+    final r = rectOf(a);
+    if (r != null) {
+      const minSize = 0.04;
+      final w = (r.width + dw).clamp(minSize, 1.0).toDouble();
+      final h = (r.height + dh).clamp(minSize, 1.0).toDouble();
+      var left = r.center.dx - w / 2, top = r.center.dy - h / 2;
+      left = left.clamp(0.0, 1 - w).toDouble(); // slide back in rather than crop
+      top = top.clamp(0.0, 1 - h).toDouble();
+      _repo.updateAnnotation(a.id, {'rect': [left, top, left + w, top + h]});
+      _changed();
+      return;
+    }
+    final ar = arrowOf(a);
+    if (ar != null) {
+      final v = ar.$2 - ar.$1;
+      final len = v.distance;
+      if (len == 0) return;
+      final newLen = (len + dw).clamp(minShape, 1.5).toDouble();
+      final tip = _clamp(ar.$1 + v / len * newLen);
+      if ((tip - ar.$1).distance < minShape) return;
+      _repo.updateAnnotation(a.id, {
+        'from': [ar.$1.dx, ar.$1.dy],
+        'to': [tip.dx, tip.dy],
+      });
+      _changed();
+    }
+  }
+
   // ---- changing and removing --------------------------------------------
 
   void movePin(String id, Offset to) {
     final c = _clamp(to);
     _repo.updatePin(id, x: c.dx, y: c.dy);
     _changed();
-  }
-
-  /// Moves the selected pin by a fraction of the image (keyboard and screen
-  /// reader users cannot drag).
-  void nudgeSelectedPin(double dx, double dy) {
-    final p = selectedPin;
-    if (p != null) movePin(p.id, Offset(p.x + dx, p.y + dy));
   }
 
   void setPinNote(String id, String note) {

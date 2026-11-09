@@ -284,6 +284,80 @@ void main() {
     });
   });
 
+  group('without dragging', () {
+    editorTest('a redaction can be added, moved and resized with buttons alone', (tester) async {
+      await openEditor(tester, repo, shot.id);
+      await tester.tap(find.bySemanticsLabel('Redact'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add a redaction in the middle'));
+      await tester.pumpAndSettle();
+      var a = repo.annotationsFor(shot.id).single;
+      expect(a.kind, AnnotationKind.redact);
+      expect(find.text('Hidden in every export'), findsOneWidget);
+
+      final before = (a.data['rect'] as List).cast<double>();
+      await tester.tap(find.bySemanticsLabel('Move redaction down'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Wider'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Taller'));
+      await tester.pumpAndSettle();
+      a = repo.annotationsFor(shot.id).single;
+      final after = (a.data['rect'] as List).cast<double>();
+      expect(after[1] + after[3], greaterThan(before[1] + before[3]), reason: 'moved down');
+      expect(after[2] - after[0], greaterThan(before[2] - before[0]), reason: 'wider');
+      expect(after[3] - after[1], greaterThan(before[3] - before[1]), reason: 'taller');
+    });
+
+    editorTest('a box and an arrow can be added and adjusted the same way', (tester) async {
+      await openEditor(tester, repo, shot.id);
+      await tester.tap(find.bySemanticsLabel('Box'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add a box in the middle'));
+      await tester.pumpAndSettle();
+      expect(repo.annotationsFor(shot.id).single.kind, AnnotationKind.box);
+      await tester.tap(find.text('Narrower'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Arrow'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add an arrow in the middle'));
+      await tester.pumpAndSettle();
+      final arrow = repo.annotationsFor(shot.id).last;
+      expect(arrow.kind, AnnotationKind.arrow);
+      await tester.tap(find.text('Longer'));
+      await tester.pumpAndSettle();
+      final longer = repo.annotationsFor(shot.id).last.data;
+      expect(((longer['to'] as List)[0] as double) - ((longer['from'] as List)[0] as double),
+          greaterThan(((arrow.data['to'] as List)[0] as double) - ((arrow.data['from'] as List)[0] as double)));
+    });
+
+    editorTest('the pen has no button route (a freehand line needs a finger) and says to draw', (tester) async {
+      await openEditor(tester, repo, shot.id);
+      await tester.tap(find.bySemanticsLabel('Pen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Draw on the screenshot with your finger.'), findsOneWidget);
+      expect(find.textContaining('in the middle'), findsNothing);
+    });
+
+    editorTest('every mark made by buttons is selectable from the marks list and deletable', (tester) async {
+      await openEditor(tester, repo, shot.id);
+      await tester.tap(find.bySemanticsLabel('Redact'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add a redaction in the middle'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Pin'));
+      await tester.pumpAndSettle();
+      expect(find.text('Hidden in every export'), findsNothing, reason: 'tool change clears the selection');
+      await tester.tap(find.bySemanticsLabel('Redaction')); // marks list
+      await tester.pumpAndSettle();
+      expect(find.text('Hidden in every export'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Delete redaction'));
+      await tester.pumpAndSettle();
+      expect(repo.annotationsFor(shot.id), isEmpty);
+    });
+  });
+
   group('crop', () {
     editorTest('drag a corner, apply: saved as data and the picture is now cropped', (tester) async {
       await openEditor(tester, repo, shot.id);
@@ -319,6 +393,45 @@ void main() {
       final c = repo.getShot(shot.id)!.crop!;
       expect(c.left, greaterThan(.1), reason: 'moved right');
       expect(c.right - c.left, closeTo(.5, .1), reason: 'size kept');
+    });
+
+    testWidgets('with motion on, the crop frame eases in from the whole image to the saved crop', (tester) async {
+      setPhone(tester);
+      final semantics = tester.ensureSemantics();
+      repo = memRepo();
+      final a = repo.createAlbum('A');
+      shot = (await seedKeptPngShots(tester, repo, a.id, 1)).single;
+      repo.setCrop(shot.id, const CropRect(.25, .25, .75, .75));
+      await tester.pumpWidget(host(EditorScreen(shotId: shot.id), repo: repo, reduceMotion: false));
+      for (var i = 0; i < 20 && _painter.evaluate().isEmpty; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      await tester.tap(find.bySemanticsLabel('Crop').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
+      expect(tester.hasRunningAnimations, isTrue, reason: 'the frame is moving');
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(tester.hasRunningAnimations, isFalse, reason: 'and then it rests');
+      semantics.dispose();
+    });
+
+    testWidgets('with reduced motion the crop frame is just there', (tester) async {
+      setPhone(tester);
+      final semantics = tester.ensureSemantics();
+      repo = memRepo();
+      final a = repo.createAlbum('A');
+      shot = (await seedKeptPngShots(tester, repo, a.id, 1)).single;
+      repo.setCrop(shot.id, const CropRect(.25, .25, .75, .75));
+      await tester.pumpWidget(host(EditorScreen(shotId: shot.id), repo: repo));
+      for (var i = 0; i < 20 && _painter.evaluate().isEmpty; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      await tester.tap(find.bySemanticsLabel('Crop').first);
+      await tester.pump();
+      expect(tester.hasRunningAnimations, isFalse);
+      semantics.dispose();
     });
 
     editorTest('applying the whole image clears the crop; Reset also clears it', (tester) async {

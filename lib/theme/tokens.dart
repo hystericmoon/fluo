@@ -39,7 +39,7 @@ abstract final class FluoTints {
   static const bugSoft = Color(0xFF2A1416);
   static const bugInk = Color(0xFFFCA5A5);
   static const warnSoft = Color(0xFF2A2110);
-  static const warnBorder = Color(0xFF7A5C10);
+  static const warnBorder = Color(0xFF8A6A14); // mock was #7A5C10 (2.5:1); raised to pass 3:1
   static const warnTitle = Color(0xFFFDE68A);
   static const warnBody = Color(0xFFE3D49A);
   static const bugBody = Color(0xFFE8C3C3);

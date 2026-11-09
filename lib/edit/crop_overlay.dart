@@ -1,4 +1,3 @@
-
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/gestures.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
@@ -6,6 +5,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import '../data/models.dart';
 import '../theme/tokens.dart';
 import 'editor_state.dart';
+import '../motion/motion.dart';
 import 'quick_pan.dart';
 import 'viewport.dart';
 
@@ -22,14 +22,47 @@ class CropOverlay extends StatefulWidget {
   State<CropOverlay> createState() => _CropOverlayState();
 }
 
-class _CropOverlayState extends State<CropOverlay> {
+class _CropOverlayState extends State<CropOverlay>
+    with SingleTickerProviderStateMixin {
   _Handle? _active;
+  // Refine Frame: the frame eases from the whole image to the crop on entry.
+  late final AnimationController _enter = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+  );
   static const _grab = 36.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _enter.value = 1;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_enter.isCompleted && _enter.value == 1 && !_started) {
+      _started = true;
+      if (!reducedMotion(context) && !widget.state.cropIsFull) {
+        _enter.forward(from: 0);
+      }
+    }
+  }
+
+  bool _started = false;
+
+  @override
+  void dispose() {
+    _enter.dispose();
+    super.dispose();
+  }
 
   CropRect get _crop => widget.state.cropDraft ?? const CropRect(0, 0, 1, 1);
 
-  Rect _widgetRect(EditViewport vp, CropRect c) =>
-      Rect.fromPoints(vp.toWidget(Offset(c.left, c.top)), vp.toWidget(Offset(c.right, c.bottom)));
+  Rect _widgetRect(EditViewport vp, CropRect c) => Rect.fromPoints(
+    vp.toWidget(Offset(c.left, c.top)),
+    vp.toWidget(Offset(c.right, c.bottom)),
+  );
 
   void _start(DragStartDetails d) {
     final vp = widget.viewport;
@@ -57,7 +90,10 @@ class _CropOverlayState extends State<CropOverlay> {
     final h = _active;
     if (h == null) return;
     final vp = widget.viewport;
-    final dn = Offset(d.delta.dx / vp.display.width, d.delta.dy / vp.display.height);
+    final dn = Offset(
+      d.delta.dx / vp.display.width,
+      d.delta.dy / vp.display.height,
+    );
     final c = _crop;
     var l = c.left, t = c.top, r = c.right, b = c.bottom;
     switch (h) {
@@ -87,7 +123,9 @@ class _CropOverlayState extends State<CropOverlay> {
   // Screen reader and keyboard route: each edge moves in 5% steps.
   void _trim(double l, double t, double r, double b) {
     final c = _crop;
-    widget.state.setCropDraft(CropRect(c.left + l, c.top + t, c.right + r, c.bottom + b));
+    widget.state.setCropDraft(
+      CropRect(c.left + l, c.top + t, c.right + r, c.bottom + b),
+    );
   }
 
   @override
@@ -96,30 +134,44 @@ class _CropOverlayState extends State<CropOverlay> {
     return Semantics(
       label: 'Crop frame',
       customSemanticsActions: {
-        const CustomSemanticsAction(label: 'Trim more from the left'): () => _trim(s, 0, 0, 0),
-        const CustomSemanticsAction(label: 'Trim less from the left'): () => _trim(-s, 0, 0, 0),
-        const CustomSemanticsAction(label: 'Trim more from the right'): () => _trim(0, 0, -s, 0),
-        const CustomSemanticsAction(label: 'Trim less from the right'): () => _trim(0, 0, s, 0),
-        const CustomSemanticsAction(label: 'Trim more from the top'): () => _trim(0, s, 0, 0),
-        const CustomSemanticsAction(label: 'Trim less from the top'): () => _trim(0, -s, 0, 0),
-        const CustomSemanticsAction(label: 'Trim more from the bottom'): () => _trim(0, 0, 0, -s),
-        const CustomSemanticsAction(label: 'Trim less from the bottom'): () => _trim(0, 0, 0, s),
+        const CustomSemanticsAction(label: 'Trim more from the left'): () =>
+            _trim(s, 0, 0, 0),
+        const CustomSemanticsAction(label: 'Trim less from the left'): () =>
+            _trim(-s, 0, 0, 0),
+        const CustomSemanticsAction(label: 'Trim more from the right'): () =>
+            _trim(0, 0, -s, 0),
+        const CustomSemanticsAction(label: 'Trim less from the right'): () =>
+            _trim(0, 0, s, 0),
+        const CustomSemanticsAction(label: 'Trim more from the top'): () =>
+            _trim(0, s, 0, 0),
+        const CustomSemanticsAction(label: 'Trim less from the top'): () =>
+            _trim(0, -s, 0, 0),
+        const CustomSemanticsAction(label: 'Trim more from the bottom'): () =>
+            _trim(0, 0, 0, -s),
+        const CustomSemanticsAction(label: 'Trim less from the bottom'): () =>
+            _trim(0, 0, 0, s),
       },
       child: RawGestureDetector(
         behavior: HitTestBehavior.opaque,
         gestures: {
-          QuickPanGestureRecognizer: GestureRecognizerFactoryWithHandlers<QuickPanGestureRecognizer>(
-            QuickPanGestureRecognizer.new,
-            (r) => r
-              ..dragStartBehavior = DragStartBehavior.down // grab the corner you touched
-              ..onStart = _start
-              ..onUpdate = _update
-              ..onEnd = (_) => _active = null,
-          ),
+          QuickPanGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<QuickPanGestureRecognizer>(
+                QuickPanGestureRecognizer.new,
+                (r) => r
+                  ..dragStartBehavior = DragStartBehavior
+                      .down // grab the corner you touched
+                  ..onStart = _start
+                  ..onUpdate = _update
+                  ..onEnd = (_) => _active = null,
+              ),
         },
         child: CustomPaint(
           size: Size.infinite,
-          painter: _CropPainter(widget.viewport.display, _widgetRect(widget.viewport, _crop)),
+          painter: _CropPainter(
+            widget.viewport.display,
+            () => _widgetRect(widget.viewport, _crop),
+            _enter,
+          ),
         ),
       ),
     );
@@ -127,14 +179,22 @@ class _CropOverlayState extends State<CropOverlay> {
 }
 
 class _CropPainter extends CustomPainter {
-  _CropPainter(this.image, this.crop);
+  _CropPainter(this.image, this.target, this.enter) : super(repaint: enter);
   final Rect image;
-  final Rect crop;
+  final Rect Function() target;
+  final Animation<double> enter;
+
+  Rect get crop =>
+      Rect.lerp(image, target(), Curves.easeOutCubic.transform(enter.value))!;
 
   @override
   void paint(Canvas canvas, Size size) {
     // Dim everything outside the frame.
-    final outside = Path.combine(PathOperation.difference, Path()..addRect(image), Path()..addRect(crop));
+    final outside = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(image),
+      Path()..addRect(crop),
+    );
     canvas.drawPath(outside, Paint()..color = const Color(0xB3000000));
 
     final edge = Paint()
@@ -148,8 +208,16 @@ class _CropPainter extends CustomPainter {
       ..color = const Color(0x66FFFFFF)
       ..strokeWidth = 1;
     for (var i = 1; i < 3; i++) {
-      canvas.drawLine(Offset(crop.left + crop.width * i / 3, crop.top), Offset(crop.left + crop.width * i / 3, crop.bottom), guide);
-      canvas.drawLine(Offset(crop.left, crop.top + crop.height * i / 3), Offset(crop.right, crop.top + crop.height * i / 3), guide);
+      canvas.drawLine(
+        Offset(crop.left + crop.width * i / 3, crop.top),
+        Offset(crop.left + crop.width * i / 3, crop.bottom),
+        guide,
+      );
+      canvas.drawLine(
+        Offset(crop.left, crop.top + crop.height * i / 3),
+        Offset(crop.right, crop.top + crop.height * i / 3),
+        guide,
+      );
     }
 
     // Corner brackets.
@@ -171,5 +239,5 @@ class _CropPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CropPainter old) => old.crop != crop || old.image != image;
+  bool shouldRepaint(_CropPainter old) => true;
 }

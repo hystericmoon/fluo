@@ -14,7 +14,7 @@ import 'support/harness.dart';
 void main() {
   testWidgets('splash then an empty Albums screen on a fresh install', (tester) async {
     setPhone(tester);
-    await tester.pumpWidget(FluoApp(repo: memRepo(), source: FakeSource(), exports: testExports()));
+    await tester.pumpWidget(FluoApp(repo: memRepo(), source: FakeSource(), exports: testExports(), reduceMotion: true));
     expect(find.text('FLUO'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1300));
     await tester.pumpAndSettle();
@@ -29,7 +29,7 @@ void main() {
     final a = repo.createAlbum('A');
     final s = await seedShots(tester, repo, a.id, 2);
     repo.setStatus(s[0].id, ShotStatus.discarded);
-    await tester.pumpWidget(FluoApp(repo: repo, source: FakeSource(), exports: testExports()));
+    await tester.pumpWidget(FluoApp(repo: repo, source: FakeSource(), exports: testExports(), reduceMotion: true));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
     expect(repo.getShot(s[0].id), isNull);
     expect(File(s[0].originalPath).existsSync(), isFalse);
@@ -196,7 +196,7 @@ void main() {
     addTearDown(() => f.deleteSync());
     src.inbox.add(IncomingShot(path: f.path, capturedAt: DateTime(2026, 11, 9)));
 
-    await tester.pumpWidget(FluoApp(repo: repo, source: src, exports: testExports()));
+    await tester.pumpWidget(FluoApp(repo: repo, source: src, exports: testExports(), reduceMotion: true));
     await tester.pump(const Duration(milliseconds: 1300));
     await tester.pumpAndSettle();
     expect(find.text('Needs photo access'), findsOneWidget, reason: 'denied at launch');

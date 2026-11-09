@@ -1,3 +1,4 @@
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../data/models.dart';
@@ -26,6 +27,7 @@ class Pressable extends StatefulWidget {
     this.selected,
     this.checked,
     this.isButton = true,
+    this.actions,
   });
 
   final VoidCallback? onTap;
@@ -36,6 +38,10 @@ class Pressable extends StatefulWidget {
   final bool? selected;
   final bool? checked;
   final bool isButton;
+
+  /// Extra screen reader actions on this control (TalkBack "actions" menu).
+  /// Kept on the control itself so they never fuse neighbouring controls.
+  final Map<CustomSemanticsAction, VoidCallback>? actions;
 
   @override
   State<Pressable> createState() => _PressableState();
@@ -56,6 +62,7 @@ class _PressableState extends State<Pressable> {
       selected: widget.selected,
       checked: widget.checked,
       inMutuallyExclusiveGroup: widget.checked != null ? true : null,
+      customSemanticsActions: widget.actions,
       onTap: widget.onTap,
       child: FocusableActionDetector(
         enabled: enabled,
@@ -447,7 +454,6 @@ class FluoField extends StatelessWidget {
           height: height,
           child: Semantics(
             label: label,
-            textField: true,
             child: TextField(
               initialValue: initial,
               onChanged: onChanged,

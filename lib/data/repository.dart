@@ -100,7 +100,7 @@ class FluoRepo {
     ];
     _db.execute('DELETE FROM albums WHERE id = ?', [id]);
     for (final f in files) {
-      await _files.delete(f);
+      _files.deleteSync(f); // a handful of files: done before this returns
     }
   }
 
@@ -234,6 +234,27 @@ class FluoRepo {
     });
   }
 
+  /// Moves a kept screen one step earlier ([delta] -1) or later (+1) among the
+  /// album's kept screens, which is the order people see. Pending and
+  /// discarded shots keep their own positions. Does nothing at either end.
+  void moveKept(String albumId, String shotId, int delta) {
+    assert(delta == -1 || delta == 1);
+    _tx(() {
+      final kept = shotsIn(albumId, status: ShotStatus.kept);
+      final i = kept.indexWhere((s) => s.id == shotId);
+      final j = i + delta;
+      if (i < 0 || j < 0 || j >= kept.length) return;
+      final slots = [for (final s in kept) s.position]; // positions the kept shots occupy
+      final order = [for (final s in kept) s.id];
+      final moved = order.removeAt(i);
+      order.insert(j, moved);
+      for (var k = 0; k < order.length; k++) {
+        _db.execute('UPDATE shots SET position = ? WHERE id = ?', [slots[k], order[k]]);
+      }
+      _touch(albumId);
+    });
+  }
+
   /// Deletes discarded screenshots, their rows and their files. One album, or
   /// all of them. Everything is done before this returns (the files are
   /// removed synchronously: there are only a few). Returns how many.
@@ -279,7 +300,7 @@ class FluoRepo {
       }
       _touch(s.albumId);
     });
-    await _files.delete(rel);
+    _files.deleteSync(rel);
   }
 
   // ---- Pins --------------------------------------------------------------
@@ -387,6 +408,10 @@ class FluoRepo {
   List<Annotation> annotationsFor(String shotId) => [
         for (final r in _db.select('SELECT * FROM annotations WHERE shot_id = ? ORDER BY z', [shotId])) _ann(r)
       ];
+
+  /// Replaces the geometry of a mark (move, resize).
+  void updateAnnotation(String id, Map<String, Object?> data) =>
+      _db.execute('UPDATE annotations SET data = ? WHERE id = ?', [jsonEncode(data), id]);
 
   void deleteAnnotation(String id) => _db.execute('DELETE FROM annotations WHERE id = ?', [id]);
 

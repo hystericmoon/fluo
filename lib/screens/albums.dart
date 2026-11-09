@@ -3,6 +3,10 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import '../capture/capture_controller.dart';
 import '../capture/capture_scope.dart';
 import '../data/format.dart';
+import '../data/models.dart' show AlbumSummary;
+import '../motion/fuse.dart';
+import '../motion/star_border.dart';
+import '../motion/swipe_row.dart';
 import '../data/repo_scope.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
@@ -24,11 +28,35 @@ class AlbumsScreen extends StatefulWidget {
 }
 
 class _AlbumsScreenState extends State<AlbumsScreen> {
+  /// Deleted from the list but not yet from the phone: waits out the undo fuse.
+  /// If the app is closed meanwhile the album simply stays, which is the safe way to fail.
+  AlbumSummary? _pendingDelete;
+
   Future<void> _push(Widget page) async {
-    await Navigator.of(context).push(fluoRoute(page));
-    if (mounted) {
-      setState(() {}); // pick up changes made on the screens we visited
-    }
+    final result = await Navigator.of(context)
+        .push<Object?>(fluoRoute<Object?>(page));
+    if (!mounted) return;
+    if (result is DeleteAlbumRequest) _scheduleDelete(result.albumId);
+    setState(() {}); // pick up changes made on the screens we visited
+  }
+
+  void _scheduleDelete(String albumId) {
+    _commitPendingDelete(); // one undo bar at a time: finish the earlier delete
+    final a = RepoScope.of(context)
+        .listAlbums()
+        .where((x) => x.album.id == albumId)
+        .firstOrNull;
+    if (a != null) setState(() => _pendingDelete = a);
+  }
+
+  void _commitPendingDelete() {
+    final p = _pendingDelete;
+    if (p == null) return;
+    _pendingDelete = null;
+    final capture = CaptureScope.of(context);
+    RepoScope.of(context)
+        .deleteAlbum(p.album.id); // rows go now, files right after
+    capture.sync(); // a session in that album ended with it
   }
 
   Future<void> _newAlbum() async {
@@ -44,80 +72,121 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
   Widget build(BuildContext context) {
     final repo = RepoScope.of(context);
     final capture = CaptureScope.of(context); // rebuilds on status and imports
-    final albums = repo.listAlbums();
+    final albums = [
+      for (final a in repo.listAlbums())
+        if (a.album.id != _pendingDelete?.album.id) a,
+    ];
     final session = repo.activeSession();
     final sessionAlbum = session == null
         ? null
         : albums.where((a) => a.album.id == session.albumId).firstOrNull;
     final now = widget.now ?? DateTime.now();
+    final pending = _pendingDelete;
     return ScreenFrame(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          ScreenHeader(
-            title: 'Albums',
-            big: true,
-            trailing: [
-              FluoIconButton(
-                icon: LucideIcons.slidersHorizontal,
-                label: 'Settings',
-                onPressed: () => _push(const SettingsScreen()),
-              ),
-              FluoButton(
-                label: 'New album',
-                icon: LucideIcons.plus,
-                kind: BtnKind.primary,
-                onPressed: _newAlbum,
-              ),
-            ],
+          Positioned.fill(
+            child: _content(context, albums, sessionAlbum, capture, now),
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: albums.isEmpty
-                ? const _EmptyState()
-                : ListView(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    children: [
-                      if (sessionAlbum != null) ...[
-                        _SessionCard(
-                          albumName: sessionAlbum.album.name,
-                          newCount: sessionAlbum.pendingCount,
-                          status: capture.status,
-                          onReview: () => _push(TriageScreen(albumId: sessionAlbum.album.id)),
-                          onPause: capture.pause,
-                          onResume: capture.resume,
-                          onFixAccess: capture.fixAccess,
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                      Semantics(
-                        header: true,
-                        child: Text(
-                          'All albums',
-                          style: fs(
-                            13,
-                            w: FontWeight.w500,
-                            c: FluoColors.fgMuted,
-                          ),
+          if (pending != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 16,
+              child: UndoFuse(
+                key: ValueKey('fuse-${pending.album.id}'),
+                message: 'Deleted ${pending.album.name}',
+                onUndo: () => setState(() => _pendingDelete = null),
+                onBurnt: () {
+                  _commitPendingDelete();
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _content(
+    BuildContext context,
+    List<AlbumSummary> albums,
+    AlbumSummary? sessionAlbum,
+    CaptureController capture,
+    DateTime now,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ScreenHeader(
+          title: 'Albums',
+          big: true,
+          trailing: [
+            FluoIconButton(
+              icon: LucideIcons.slidersHorizontal,
+              label: 'Settings',
+              onPressed: () => _push(const SettingsScreen()),
+            ),
+            FluoButton(
+              label: 'New album',
+              icon: LucideIcons.plus,
+              kind: BtnKind.primary,
+              onPressed: _newAlbum,
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: albums.isEmpty
+              ? const _EmptyState()
+              : ListView(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  children: [
+                    if (sessionAlbum != null) ...[
+                      _SessionCard(
+                        albumName: sessionAlbum.album.name,
+                        newCount: sessionAlbum.pendingCount,
+                        status: capture.status,
+                        onReview: () =>
+                            _push(TriageScreen(albumId: sessionAlbum.album.id)),
+                        onPause: capture.pause,
+                        onResume: capture.resume,
+                        onFixAccess: capture.fixAccess,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        'All albums',
+                        style: fs(
+                          13,
+                          w: FontWeight.w500,
+                          c: FluoColors.fgMuted,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      for (final a in albums) ...[
-                        _AlbumRow(
+                    ),
+                    const SizedBox(height: 10),
+                    for (final a in albums) ...[
+                      SwipeRow(
+                    key: ValueKey('row-${a.album.id}'), // state must follow the album, not the position
+                    actionLabel: 'Delete album',
+                        onDelete: () => _scheduleDelete(a.album.id),
+                        child: _AlbumRow(
                           name: a.album.name,
                           meta:
                               '${screensLabel(a.keptCount)} · ${relativeDay(a.album.updatedAt, now: now)}',
                           thumbs: a.thumbnailPaths,
                           onTap: () => _push(AlbumScreen(albumId: a.album.id)),
                         ),
-                        const SizedBox(height: 10),
-                      ],
+                      ),
+                      const SizedBox(height: 10),
                     ],
-                  ),
-          ),
-        ],
-      ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 }
@@ -174,78 +243,86 @@ class _SessionCard extends StatelessWidget {
       container: true,
       explicitChildNodes: true, // controls inside stay separately focusable
       label: 'Active session',
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: on ? FluoColors.limeTint : FluoColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: on ? FluoColors.lime : FluoColors.borderStrong,
+      // While capturing, a bright spot circles the border. Still when it is
+      // not live or when motion is reduced; the words say the same thing.
+      child: FluoStarBorder(
+        active: on,
+        color: FluoColors.lime,
+        radius: 16,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: on ? FluoColors.limeTint : FluoColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: on ? null : Border.all(color: FluoColors.borderStrong),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: fs(
-                    13,
-                    w: FontWeight.w500,
-                    c: on ? FluoColors.limeSoft : FluoColors.fg,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(albumName, style: fs(17, w: FontWeight.w600)),
-            const SizedBox(height: 2),
-            Text(detail, style: fs(14, c: FluoColors.fgMuted, h: 1.4)),
-            const SizedBox(height: 12),
-            if (_problem)
-              FluoButton(
-                label: fixLabel,
-                kind: BtnKind.primary,
-                expand: true,
-                onPressed: onFixAccess,
-              )
-            else
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 children: [
-                  Expanded(
-                    child: FluoButton(
-                      label: newCount > 0
-                          ? 'Review $newCount new'
-                          : 'Nothing new yet',
-                      kind: newCount > 0 ? BtnKind.primary : BtnKind.outline,
-                      expand: true,
-                      onPressed: newCount > 0 ? onReview : null,
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: dot,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                  if (status != CaptureStatus.unsupported) ...[
-                    const SizedBox(width: 8),
-                    status == CaptureStatus.paused
-                        ? FluoButton(
-                            label: 'Resume',
-                            hPad: 18,
-                            onPressed: onResume,
-                          )
-                        : FluoButton(
-                            label: 'Pause',
-                            hPad: 18,
-                            onPressed: onPause,
-                          ),
-                  ],
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: fs(
+                      13,
+                      w: FontWeight.w500,
+                      c: on ? FluoColors.limeSoft : FluoColors.fg,
+                    ),
+                  ),
                 ],
               ),
-          ],
+              const SizedBox(height: 12),
+              Text(albumName, style: fs(17, w: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(detail, style: fs(14, c: FluoColors.fgMuted, h: 1.4)),
+              const SizedBox(height: 12),
+              if (_problem)
+                FluoButton(
+                  label: fixLabel,
+                  kind: BtnKind.primary,
+                  expand: true,
+                  onPressed: onFixAccess,
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: FluoButton(
+                        label: newCount > 0
+                            ? 'Review $newCount new'
+                            : 'Nothing new yet',
+                        kind: newCount > 0 ? BtnKind.primary : BtnKind.outline,
+                        expand: true,
+                        onPressed: newCount > 0 ? onReview : null,
+                      ),
+                    ),
+                    if (status != CaptureStatus.unsupported) ...[
+                      const SizedBox(width: 8),
+                      status == CaptureStatus.paused
+                          ? FluoButton(
+                              label: 'Resume',
+                              hPad: 18,
+                              onPressed: onResume,
+                            )
+                          : FluoButton(
+                              label: 'Pause',
+                              hPad: 18,
+                              onPressed: onPause,
+                            ),
+                    ],
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -339,7 +416,9 @@ class _AlbumRow extends StatelessWidget {
               children: [
                 for (var i = 0; i < 3; i++) ...[
                   if (i > 0) const SizedBox(width: 4),
-                  i < thumbs.length ? _real(thumbs[i]) : _thumb(i == 0 && thumbs.isEmpty),
+                  i < thumbs.length
+                      ? _real(thumbs[i])
+                      : _thumb(i == 0 && thumbs.isEmpty),
                 ],
               ],
             ),

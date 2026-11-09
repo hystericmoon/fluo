@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fluo/capture/capture_controller.dart';
 import 'package:fluo/export/export_scope.dart';
+import 'package:fluo/motion/motion.dart';
 import 'package:fluo/export/export_service.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:fluo/capture/capture_scope.dart';
@@ -41,20 +42,26 @@ ExportServices testExports([FakeShare? share]) {
   );
 }
 
-Widget host(Widget home, {FluoRepo? repo, FakeSource? source, ExportServices? exports}) {
+/// [reduceMotion] defaults to true so `pumpAndSettle` can finish: some
+/// animations (the live border) never end. Motion tests turn it off.
+Widget host(Widget home,
+    {FluoRepo? repo, FakeSource? source, ExportServices? exports, bool reduceMotion = true}) {
   final r = repo ?? memRepo();
   final c = CaptureController(r, source ?? FakeSource());
   addTearDown(c.dispose);
   return RepoScope(
     repo: r,
-    child: ExportScope(
-      services: exports ?? testExports(),
-      child: CaptureScope(
-        controller: c,
-        child: ShadcnApp(
-          debugShowCheckedModeBanner: false,
-          theme: fluoTheme(),
-          home: home,
+    child: MotionScope(
+      reduce: reduceMotion,
+      child: ExportScope(
+        services: exports ?? testExports(),
+        child: CaptureScope(
+          controller: c,
+          child: ShadcnApp(
+            debugShowCheckedModeBanner: false,
+            theme: fluoTheme(),
+            home: home,
+          ),
         ),
       ),
     ),
@@ -145,5 +152,49 @@ Future<List<Shot>> seedKeptPngShots(WidgetTester tester, FluoRepo repo, String a
   for (final s in out) {
     repo.setStatus(s.id, ShotStatus.kept);
   }
+  return out;
+}
+
+/// Controls a screen reader would land on that have no name: a tap target, a
+/// toggle or a text field with an empty label. A nameless control is
+/// "unlabelled button" to TalkBack.
+List<String> unlabeledControls(WidgetTester t) {
+  final bad = <String>[];
+  void visit(SemanticsNode n) {
+    final d = n.getSemanticsData();
+    final interactive = d.hasAction(SemanticsAction.tap) ||
+        d.flagsCollection.isTextField ||
+        d.flagsCollection.isButton ||
+        d.flagsCollection.isToggled.toBoolOrNull() != null ||
+        d.flagsCollection.isChecked != ui.CheckedState.none;
+    if (interactive && !n.isInvisible && d.label.trim().isEmpty && d.value.trim().isEmpty) {
+      bad.add('nameless control at ${n.rect}: textField=${d.flagsCollection.isTextField}, button=${d.flagsCollection.isButton}, tap=${d.hasAction(SemanticsAction.tap)}, hint=${d.hint}, value=${d.value}');
+    }
+    n.visitChildren((c) {
+      visit(c);
+      return true;
+    });
+  }
+
+  visit(t.binding.renderViews.first.owner!.semanticsOwner!.rootSemanticsNode!);
+  return bad;
+}
+
+/// Every custom action label offered on any node, for "is there an
+/// alternative to this gesture" checks.
+Set<String> customActionLabels(WidgetTester t) {
+  final out = <String>{};
+  void visit(SemanticsNode n) {
+    for (final id in n.getSemanticsData().customSemanticsActionIds ?? const <int>[]) {
+      final l = CustomSemanticsAction.getAction(id)?.label;
+      if (l != null) out.add(l);
+    }
+    n.visitChildren((c) {
+      visit(c);
+      return true;
+    });
+  }
+
+  visit(t.binding.renderViews.first.owner!.semanticsOwner!.rootSemanticsNode!);
   return out;
 }

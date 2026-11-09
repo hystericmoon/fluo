@@ -271,18 +271,7 @@ class _EditorScreenState extends State<EditorScreen> {
         onChanged: (v) => s.setPinNote(p.id, v),
       ),
       const SizedBox(height: 12),
-      // Moving a pin without dragging.
-      Row(children: [
-        Text('Move pin', style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
-        const Spacer(),
-        FluoIconButton(icon: LucideIcons.arrowLeft, label: 'Move pin left', onPressed: () => s.nudgeSelectedPin(-0.02, 0)),
-        const SizedBox(width: 8),
-        FluoIconButton(icon: LucideIcons.arrowUp, label: 'Move pin up', onPressed: () => s.nudgeSelectedPin(0, -0.02)),
-        const SizedBox(width: 8),
-        FluoIconButton(icon: LucideIcons.arrowDown, label: 'Move pin down', onPressed: () => s.nudgeSelectedPin(0, 0.02)),
-        const SizedBox(width: 8),
-        FluoIconButton(icon: LucideIcons.arrowRight, label: 'Move pin right', onPressed: () => s.nudgeSelectedPin(0.02, 0)),
-      ]),
+      _movePad(s, 'pin'),
     ]);
   }
 
@@ -295,18 +284,66 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Widget _markPanel(EditorState s, Annotation a) {
     final name = _kindName(a.kind);
-    return Row(children: [
-      Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Semantics(header: true, child: Text(name, style: fs(15, w: FontWeight.w600))),
-          if (a.kind == AnnotationKind.redact)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text('Hidden in every export', style: fs(13, c: FluoColors.fgMuted)),
-            ),
+    final sizes = switch (a.kind) {
+      AnnotationKind.box || AnnotationKind.redact => [
+          ('Wider', () => s.resizeSelected(0.04, 0)),
+          ('Narrower', () => s.resizeSelected(-0.04, 0)),
+          ('Taller', () => s.resizeSelected(0, 0.04)),
+          ('Shorter', () => s.resizeSelected(0, -0.04)),
+        ],
+      AnnotationKind.arrow => [
+          ('Longer', () => s.resizeSelected(0.04, 0)),
+          ('Shorter', () => s.resizeSelected(-0.04, 0)),
+        ],
+      AnnotationKind.pen => const <(String, VoidCallback)>[],
+    };
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Semantics(header: true, child: Text(name, style: fs(15, w: FontWeight.w600))),
+            if (a.kind == AnnotationKind.redact)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text('Hidden in every export', style: fs(13, c: FluoColors.fgMuted)),
+              ),
+          ]),
+        ),
+        FluoIconButton(icon: LucideIcons.trash2, label: 'Delete ${name.toLowerCase()}', onPressed: s.deleteSelected),
+      ]),
+      const SizedBox(height: 12),
+      _movePad(s, name.toLowerCase()),
+      if (sizes.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final (label, tap) in sizes)
+            FluoButton(label: label, onPressed: tap),
         ]),
+      ],
+    ]);
+  }
+
+  /// Move the selected pin or mark with buttons: the same thing as dragging.
+  Widget _movePad(EditorState s, String what) {
+    Widget b(IconData icon, String dir, double dx, double dy) => FluoIconButton(
+          icon: icon,
+          label: 'Move $what $dir',
+          onPressed: () => s.nudgeSelected(dx, dy),
+        );
+    return Row(children: [
+      // Flexes and ellipsizes, so large system text never squeezes the buttons.
+      Expanded(
+        child: Text('Move $what',
+            maxLines: 1, overflow: TextOverflow.ellipsis, style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
       ),
-      FluoIconButton(icon: LucideIcons.trash2, label: 'Delete ${name.toLowerCase()}', onPressed: s.deleteSelected),
+      const SizedBox(width: 8),
+      b(LucideIcons.arrowLeft, 'left', -0.02, 0),
+      const SizedBox(width: 8),
+      b(LucideIcons.arrowUp, 'up', 0, -0.02),
+      const SizedBox(width: 8),
+      b(LucideIcons.arrowDown, 'down', 0, 0.02),
+      const SizedBox(width: 8),
+      b(LucideIcons.arrowRight, 'right', 0.02, 0),
     ]);
   }
 
@@ -323,6 +360,29 @@ class _EditorScreenState extends State<EditorScreen> {
       Row(children: [
         Expanded(child: Text(hint, style: fs(14, c: FluoColors.fgMuted, h: 1.4))),
       ]),
+      if (s.tool == EditTool.box || s.tool == EditTool.redact || s.tool == EditTool.arrow) ...[
+        const SizedBox(height: 12),
+        // The same thing as dragging: a shape in the middle, then move and
+        // resize it with the buttons that appear.
+        FluoButton(
+          label: switch (s.tool) {
+            EditTool.box => 'Add a box in the middle',
+            EditTool.redact => 'Add a redaction in the middle',
+            _ => 'Add an arrow in the middle',
+          },
+          icon: switch (s.tool) {
+            EditTool.box => LucideIcons.square,
+            EditTool.redact => LucideIcons.eyeOff,
+            _ => LucideIcons.moveUpRight,
+          },
+          expand: true,
+          onPressed: () => s.addDefaultShape(switch (s.tool) {
+            EditTool.box => AnnotationKind.box,
+            EditTool.redact => AnnotationKind.redact,
+            _ => AnnotationKind.arrow,
+          }),
+        ),
+      ],
       if (s.tool == EditTool.pin) ...[
         const SizedBox(height: 12),
         Row(children: [

@@ -12,6 +12,7 @@ Superfast phone screenshot review app. Take a screenshot, then crop, annotate, c
 - Triage: every Keep, Discard and name is written to the database at once, so leaving half way loses nothing and the rest stay pending. Undo only reaches back within the current pass. Flow numbers count kept screens in order.
 - Editor: marks are stored in normalised image coordinates (0..1 of the original) and drawn by one renderer (`lib/edit/render.dart`) used for the canvas and, from session 7, for exports. Pin shape, letter and colour carry severity (Bug circle B, UX rounded square U, A11y diamond A) with the pin number. Redactions are opaque black and always painted on top of other marks. Drags on the canvas use `QuickPanGestureRecognizer`, because the stock pan recognizer loses to the page scroll for vertical strokes.
 - Discarded screenshots are deleted (rows and files) when Triage is left and on app start.
+- Motion kit (`lib/motion/`): Hold Button (hold, or tap twice), Swipe Row, Undo Fuse (undo bar for deletes; deletes are final only when it burns), FluoStarBorder (live border on the session card), crop frame entry, Triage card entrance. Every motion respects `reducedMotion(context)` (system setting or the in-app `MotionScope`). Every gesture has a non-gesture alternative; see `docs/accessibility.md`. Put TalkBack actions on the control itself (`Pressable.actions`), and give containers that hold controls `explicitChildNodes: true`.
 - Edits are non-destructive: originals are kept, crop and annotations are vector data rendered on export.
 - Redactions are baked into exported pixels. Originals are excluded from exports by default, with an explicit toggle to include them.
 - Exports: Claude pack (Markdown plus images ZIP with captions, pins and a review brief), PDF, long stitched image, share images. All built from images rendered by `renderShotPng` (`lib/export/render_shot.dart`), which uses the editor's `paintEdit`, so crop, marks and redactions are baked into pixels before anything is written. `ExportService` writes to a temp folder that is cleared before each export and at launch, then hands the files to the system share sheet (`share_plus`). Originals are only added to the Claude pack and Share images, and only if the switch is on; PDF and long image never carry them. A long album is split into numbered long-image parts (max 7000px each).
@@ -35,5 +36,6 @@ Notes: Lexend and Inter are bundled variable fonts in `assets/fonts/` (weight vi
 - `docs/spec.md` scope and non-goals
 - `docs/plan.md` numbered sessions
 - `docs/progress.md` what is next
+- `docs/accessibility.md` the accessibility checks, the gesture-to-alternative table and a manual TalkBack script
 - `refs/mocks/` the six core screens plus splash; open `canvas.json` boards. Source of truth for UI.
 - Tracker: docs/progress.md

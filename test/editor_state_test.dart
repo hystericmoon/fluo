@@ -105,10 +105,10 @@ void main() {
 
     test('nudge moves the selected pin and keeps it inside the image', () {
       final p1 = st.addPin(const Offset(.99, .5));
-      st.nudgeSelectedPin(.05, 0);
+      st.nudgeSelected(.05, 0);
       expect(repo.pinsFor(shot.id).single.x, 1.0);
       st.select(null);
-      st.nudgeSelectedPin(.05, 0); // nothing selected: nothing happens
+      st.nudgeSelected(.05, 0); // nothing selected: nothing happens
       expect(repo.pinsFor(shot.id).single.id, p1.id);
     });
 
@@ -146,6 +146,84 @@ void main() {
     test('caption is saved on the shot', () {
       st.setCaption('Cart: total changes after shipping');
       expect(repo.getShot(shot.id)!.caption, 'Cart: total changes after shipping');
+    });
+  });
+
+  group('without dragging', () {
+    test('a box, redaction or arrow can be added from a button, centred and selected', () {
+      final box = st.addDefaultShape(AnnotationKind.box)!;
+      final red = st.addDefaultShape(AnnotationKind.redact)!;
+      final arrow = st.addDefaultShape(AnnotationKind.arrow)!;
+      expect(st.addDefaultShape(AnnotationKind.pen), isNull, reason: 'a freehand line needs a finger');
+      final r = (box.data['rect'] as List).cast<double>();
+      expect((r[0] + r[2]) / 2, closeTo(.5, 1e-9));
+      expect((r[1] + r[3]) / 2, closeTo(.5, 1e-9));
+      expect(st.selectedId, arrow.id);
+      expect(red.kind, AnnotationKind.redact);
+      expect(st.canUndo, isTrue);
+    });
+
+    test('with a crop, the shape lands in the middle of what is visible', () {
+      st.setTool(EditTool.crop);
+      st.setCropDraft(const CropRect(.5, .5, 1, 1));
+      st.applyCrop();
+      final r = (st.addDefaultShape(AnnotationKind.redact)!.data['rect'] as List).cast<double>();
+      expect((r[0] + r[2]) / 2, closeTo(.75, 1e-9));
+      expect((r[1] + r[3]) / 2, closeTo(.75, 1e-9));
+    });
+
+    test('nudge moves a box, an arrow and a pen stroke, and stops at the image edge', () {
+      final box = st.addRect(AnnotationKind.box, const Offset(.1, .1), const Offset(.3, .2))!;
+      st.nudgeSelected(.1, .05);
+      expect((repo.annotationsFor(shot.id).single.data['rect'] as List), [closeTo(.2, 1e-9), closeTo(.15, 1e-9), closeTo(.4, 1e-9), closeTo(.25, 1e-9)]);
+      st.nudgeSelected(5, 0); // far too much: slides to the edge, keeps its size
+      final r = (repo.annotationsFor(shot.id).single.data['rect'] as List).cast<double>();
+      expect(r[2], closeTo(1, 1e-9));
+      expect(r[2] - r[0], closeTo(.2, 1e-9));
+      expect(box.id, isNotEmpty);
+
+      final arrow = st.addArrow(const Offset(.2, .5), const Offset(.4, .5))!;
+      st.nudgeSelected(0, .1);
+      expect(((repo.annotationsFor(shot.id).firstWhere((a) => a.id == arrow.id).data['from']) as List)[1], closeTo(.6, 1e-9));
+
+      final pen = st.addStroke([for (var i = 0; i <= 20; i++) Offset(.4 + i * .01, .4 + i * .01)])!;
+      st.nudgeSelected(-1, -1);
+      final pts = (repo.annotationsFor(shot.id).firstWhere((a) => a.id == pen.id).data['points'] as List);
+      expect((pts.first as List)[0], closeTo(0, 1e-9));
+      expect((pts.first as List)[1], closeTo(0, 1e-9));
+    });
+
+    test('resize grows and shrinks a box around its centre, within limits', () {
+      st.addRect(AnnotationKind.redact, const Offset(.4, .4), const Offset(.6, .5));
+      st.resizeSelected(.1, 0);
+      var r = (repo.annotationsFor(shot.id).single.data['rect'] as List).cast<double>();
+      expect(r[2] - r[0], closeTo(.3, 1e-9));
+      expect((r[0] + r[2]) / 2, closeTo(.5, 1e-9));
+      st.resizeSelected(0, -.5); // cannot vanish
+      r = (repo.annotationsFor(shot.id).single.data['rect'] as List).cast<double>();
+      expect(r[3] - r[1], closeTo(.04, 1e-9));
+      st.resizeSelected(5, 5); // cannot leave the image
+      r = (repo.annotationsFor(shot.id).single.data['rect'] as List).cast<double>();
+      expect([r[0], r[1], r[2], r[3]], [0.0, 0.0, 1.0, 1.0]);
+    });
+
+    test('resize lengthens an arrow along its direction and never to nothing', () {
+      st.addArrow(const Offset(.2, .5), const Offset(.4, .5));
+      st.resizeSelected(.2, 0);
+      var a = repo.annotationsFor(shot.id).single.data;
+      expect((a['to'] as List)[0], closeTo(.6, 1e-9));
+      expect((a['from'] as List)[0], .2, reason: 'the tail stays put');
+      st.resizeSelected(-5, 0);
+      a = repo.annotationsFor(shot.id).single.data;
+      expect((a['to'] as List)[0], closeTo(.6, 1e-9), reason: 'refused: it would be a dot');
+    });
+
+    test('nudge and resize do nothing with nothing selected', () {
+      st.addRect(AnnotationKind.box, const Offset(.1, .1), const Offset(.3, .2));
+      st.select(null);
+      st.nudgeSelected(.1, .1);
+      st.resizeSelected(.1, .1);
+      expect((repo.annotationsFor(shot.id).single.data['rect'] as List).first, closeTo(.1, 1e-9));
     });
   });
 
