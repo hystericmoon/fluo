@@ -5,6 +5,15 @@ Session 10 is written up in `docs/release.md`. Decision: no Play Store or App St
 - Run on a physical Android device and do the manual TalkBack script in `docs/accessibility.md`. Nothing has run on hardware.
 - If a store release is ever wanted: trademark search, upload keystore, Play Console forms (texts drafted in `docs/release.md` and `docs/privacy.md`).
 
+## Next (hand-off, 2026-11-09)
+Branch `session-10-release` (PR #10, stacked on session-9-settings) holds everything, pushed at the time of writing. Sessions 1 to 10 done, plus a post-10 capture fix.
+1. Install the debug APK on the phone and verify, in this order: start a session (card should say "Session on"), take a screenshot (it should appear under "Review N new"), Pause then Resume, and share a screenshot to Fluo from the gallery and pick an album. If it fails, read `adb logcat -s FluoCapture` and the card's "Could not start" state (`CaptureController.lastError`).
+2. Then check the remaining device risks below: brand file-name heuristic (`ScreenshotFilter`), service surviving idle, Android 14 "selected photos", watching-notification icon.
+3. Fluo ships as a sideloaded APK signed with the debug key (no store release). `docs/privacy.md` only matters if that changes.
+Toolchain after a clear: Flutter 3.47.9 in /opt/tc/flutter, Android SDK 36 in /opt/tc/android (ANDROID_HOME). Run `git config --global --add safe.directory /opt/tc/flutter`. Do not run two gradle builds at once (lock clash).
+The stop hook miscounts unpushed commits here; check `git ls-remote origin <branch>` against `git rev-parse HEAD`.
+User asked to pause and resume at 12:20am; no time zone given, so no reminder was scheduled.
+
 ## Open items
 - Post-session 10 (device feedback): FIXED probable cause of "not detected" and a dead Resume button: `Gallery.maxId` put `LIMIT 1` in the sort order, which Android 11+ rejects, so `start` threw and the card stayed on Paused. Now uses `QUERY_ARG_LIMIT`; `start` errors reach Dart, and the card shows "Could not start" with Try again. A row stuck as pending for over a minute no longer blocks the watcher. NOT yet verified on a phone.
 - Post-session 10: NEW fallback: Fluo is an Android share target for images (`ShareIntake.kt`, `lib/ui/shared_intake.dart`). Share a screenshot to Fluo, then pick an album or create a new one; it arrives as a pending screen. Cancel discards the shared copy. Sharing does not start a session.
