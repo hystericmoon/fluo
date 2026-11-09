@@ -7,6 +7,7 @@ Superfast phone screenshot review app. Take a screenshot, then crop, annotate, c
 - Flutter, one codebase for all platforms. Android capture needs a small Kotlin plugin; other platforms later.
 - UI library: `shadcn_flutter` (New York style, standalone). Check the latest version first; it is pre-1.0. Runner-up if it fails: `shadcn_ui`.
 - Motion: an internal Flutter motion kit inspired by React Bits (React-only, so nothing is copied). Used: Stack, Swipe Row with Fuse undo, Hold Button, Refine Frame, Star Border. Skipped: backgrounds, text effects, cursor effects. Check the React Bits license before porting any code.
+- Storage: SQLite through the `sqlite3` package with hand-written SQL, no ORM. Schema changes are append-only entries in `lib/data/db.dart` (`PRAGMA user_version`). Originals live in `<app docs>/fluo/originals/` as write-once files; the database stores paths relative to that folder. All reads and writes go through `FluoRepo` (`lib/data/repository.dart`).
 - Capture: auto-detect new screenshots into a review session, then batch caption and annotate in Triage.
 - Edits are non-destructive: originals are kept, crop and annotations are vector data rendered on export.
 - Redactions are baked into exported pixels. Originals are excluded from exports by default, with an explicit toggle to include them.

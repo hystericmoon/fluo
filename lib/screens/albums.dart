@@ -1,21 +1,55 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-import '../data/fake_data.dart';
+import '../data/format.dart';
+import '../data/models.dart';
+import '../data/repo_scope.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
+import '../ui/new_album_dialog.dart';
 import 'album.dart';
 import 'settings.dart';
 import 'triage.dart';
 
-/// Albums list with the active session card.
-class AlbumsScreen extends StatelessWidget {
-  const AlbumsScreen({super.key, this.albums = fakeAlbums, this.sessionNew = 7});
+/// Albums list, read from the local database. The session card shows when
+/// some album has screenshots waiting for review.
+class AlbumsScreen extends StatefulWidget {
+  const AlbumsScreen({super.key, this.now});
 
-  final List<AlbumInfo> albums;
-  final int sessionNew;
+  /// Fixed clock for tests.
+  final DateTime? now;
+
+  @override
+  State<AlbumsScreen> createState() => _AlbumsScreenState();
+}
+
+class _AlbumsScreenState extends State<AlbumsScreen> {
+  List<AlbumSummary>? _albums;
+
+  void _load() => setState(() => _albums = RepoScope.of(context).listAlbums());
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _albums ??= RepoScope.of(context).listAlbums();
+  }
+
+  Future<void> _push(Widget page) async {
+    await Navigator.of(context).push(fluoRoute(page));
+    if (mounted) _load(); // pick up changes made on the screens we visited
+  }
+
+  Future<void> _newAlbum() async {
+    final name = await askAlbumName(context);
+    if (name == null || !mounted) return;
+    RepoScope.of(context).createAlbum(name);
+    _load();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final albums = _albums ?? const <AlbumSummary>[];
+    final waiting = albums.where((a) => a.pendingCount > 0).firstOrNull;
+    final now = widget.now ?? DateTime.now();
     return ScreenFrame(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       child: Column(
@@ -28,13 +62,13 @@ class AlbumsScreen extends StatelessWidget {
               FluoIconButton(
                 icon: LucideIcons.slidersHorizontal,
                 label: 'Settings',
-                onPressed: () => Navigator.of(context).push(fluoRoute(const SettingsScreen())),
+                onPressed: () => _push(const SettingsScreen()),
               ),
               FluoButton(
                 label: 'New album',
                 icon: LucideIcons.plus,
                 kind: BtnKind.primary,
-                onPressed: () {},
+                onPressed: _newAlbum,
               ),
             ],
           ),
@@ -45,8 +79,14 @@ class AlbumsScreen extends StatelessWidget {
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 24),
                     children: [
-                      _SessionCard(newCount: sessionNew),
-                      const SizedBox(height: 20),
+                      if (waiting != null) ...[
+                        _SessionCard(
+                          albumName: waiting.album.name,
+                          newCount: waiting.pendingCount,
+                          onReview: () => _push(const TriageScreen()),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       Semantics(
                         header: true,
                         child: Text('All albums',
@@ -54,7 +94,12 @@ class AlbumsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       for (final a in albums) ...[
-                        _AlbumRow(a),
+                        _AlbumRow(
+                          name: a.album.name,
+                          meta:
+                              '${screensLabel(a.keptCount)} · ${relativeDay(a.album.updatedAt, now: now)}',
+                          onTap: () => _push(AlbumScreen(title: a.album.name)),
+                        ),
                         const SizedBox(height: 10),
                       ],
                     ],
@@ -67,8 +112,10 @@ class AlbumsScreen extends StatelessWidget {
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.newCount});
+  const _SessionCard({required this.albumName, required this.newCount, required this.onReview});
+  final String albumName;
   final int newCount;
+  final VoidCallback onReview;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +139,7 @@ class _SessionCard extends StatelessWidget {
             Text('Session on', style: fs(13, w: FontWeight.w500, c: FluoColors.limeSoft)),
           ]),
           const SizedBox(height: 12),
-          Text('Checkout flow review', style: fs(17, w: FontWeight.w600)),
+          Text(albumName, style: fs(17, w: FontWeight.w600)),
           const SizedBox(height: 2),
           Text('New screenshots land here automatically',
               style: fs(14, c: FluoColors.fgMuted)),
@@ -103,7 +150,7 @@ class _SessionCard extends StatelessWidget {
                 label: 'Review $newCount new',
                 kind: BtnKind.primary,
                 expand: true,
-                onPressed: () => Navigator.of(context).push(fluoRoute(const TriageScreen())),
+                onPressed: onReview,
               ),
             ),
             const SizedBox(width: 8),
@@ -116,8 +163,10 @@ class _SessionCard extends StatelessWidget {
 }
 
 class _AlbumRow extends StatelessWidget {
-  const _AlbumRow(this.album);
-  final AlbumInfo album;
+  const _AlbumRow({required this.name, required this.meta, required this.onTap});
+  final String name;
+  final String meta;
+  final VoidCallback onTap;
 
   Widget _thumb(bool lime) => Container(
         width: 34,
@@ -147,8 +196,8 @@ class _AlbumRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Pressable(
-      onTap: () => Navigator.of(context).push(fluoRoute(AlbumScreen(title: album.name))),
-      label: '${album.name}, ${album.meta}',
+      onTap: onTap,
+      label: '$name, $meta',
       radius: 14,
       builder: (_, _) => Container(
         padding: const EdgeInsets.all(12),
@@ -168,10 +217,10 @@ class _AlbumRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(album.name,
+              Text(name,
                   maxLines: 1, overflow: TextOverflow.ellipsis, style: fs(16, w: FontWeight.w500)),
               const SizedBox(height: 3),
-              Text(album.meta, style: fs(13, c: FluoColors.fgMuted)),
+              Text(meta, style: fs(13, c: FluoColors.fgMuted)),
             ]),
           ),
           const Icon(LucideIcons.chevronRight, size: 20, color: FluoTints.chevron),

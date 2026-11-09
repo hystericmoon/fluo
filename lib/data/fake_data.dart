@@ -1,18 +1,8 @@
 import 'package:flutter/painting.dart';
 
-import '../theme/tokens.dart';
+import 'models.dart';
 
-enum Severity { bug, ux, a11y }
-
-extension SeverityX on Severity {
-  String get letter => switch (this) { Severity.bug => 'B', Severity.ux => 'U', Severity.a11y => 'A' };
-  String get label => switch (this) { Severity.bug => 'Bug', Severity.ux => 'UX', Severity.a11y => 'A11y' };
-  Color get color => switch (this) {
-        Severity.bug => FluoColors.bug,
-        Severity.ux => FluoColors.ux,
-        Severity.a11y => FluoColors.a11y,
-      };
-}
+export 'models.dart' show Severity, SeverityX;
 
 class AlbumInfo {
   const AlbumInfo(this.name, this.meta);
