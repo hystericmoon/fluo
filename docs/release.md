@@ -98,7 +98,7 @@ $ANDROID_HOME/build-tools/36.0.0/aapt2 dump permissions build/app/outputs/flutte
 
 ## 8. Privacy: changed
 
-Shown in Settings, "Privacy and credits": *Fluo keeps everything on this phone. There are no accounts and no cloud. Nothing leaves the phone except what you choose to share from the export screen.* This matches item 6. A hosted privacy policy URL is still needed for Play (needs a person); use the same text plus the permission reasons above.
+Shown in Settings, "Privacy and credits": *Fluo keeps everything on this phone. There are no accounts and no cloud. Nothing leaves the phone except what you choose to share from the export screen.* This matches item 6. A draft policy page is in `docs/privacy.md` (two TODOs: operator name and contact email, plus the date). Play still needs it hosted at a public URL, which needs a person.
 
 ## Not cleared from here
 
