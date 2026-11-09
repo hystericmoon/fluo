@@ -306,6 +306,20 @@ class FluoRepo {
     });
   }
 
+  /// Pins of every shot in the album, grouped by shot id, in pin order.
+  Map<String, List<Pin>> pinsInAlbum(String albumId) {
+    final out = <String, List<Pin>>{};
+    final rows = _db.select('''
+      SELECT p.* FROM pins p JOIN shots s ON s.id = p.shot_id
+      WHERE s.album_id = ? ORDER BY p.shot_id, p.number
+    ''', [albumId]);
+    for (final r in rows) {
+      final pin = _pin(r);
+      (out[pin.shotId] ??= []).add(pin);
+    }
+    return out;
+  }
+
   /// Pin counts per severity across the album's kept shots (filter chips).
   Map<Severity, int> pinCounts(String albumId) {
     final rows = _db.select('''

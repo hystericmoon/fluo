@@ -1,6 +1,5 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-import '../data/fake_data.dart';
 import '../theme/tokens.dart';
 import 'kit.dart';
 
@@ -40,109 +39,6 @@ class _Row extends StatelessWidget {
         ),
         SizedBox(width: small ? 8 : 10),
         _bar(small ? 26 : 34, h1, _ink),
-      ]),
-    );
-  }
-}
-
-/// Triage card, 270x500: a cart screen.
-class TriageShot extends StatelessWidget {
-  const TriageShot({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 270,
-      height: 500,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _paper,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF3F3F46)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Container(width: 20, height: 20, decoration: const BoxDecoration(color: _line, shape: BoxShape.circle)),
-          const SizedBox(width: 10),
-          Text('Your cart', style: fs(16, w: FontWeight.w600, c: const Color(0xFF18181B))),
-        ]),
-        const SizedBox(height: 14),
-        const _Row(0.8, 0.5),
-        const SizedBox(height: 10),
-        const _Row(0.7, 0.4),
-        const SizedBox(height: 10),
-        const _Row(0.76, 0.46),
-        const SizedBox(height: 14),
-        Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _line)),
-          child: _bar(90, 8, _line),
-        ),
-        const SizedBox(height: 14),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_bar(56, 8, _line), _bar(34, 8, _line)]),
-        const SizedBox(height: 10),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_bar(48, 8, _line), _bar(34, 8, _line)]),
-        const SizedBox(height: 10),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_bar(44, 10, _ink), _bar(40, 10, _ink)]),
-        const Spacer(),
-        Container(
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(12)),
-          child: Text('Pay now', style: fs(15, w: FontWeight.w600, c: const Color(0xFFFFFFFF))),
-        ),
-      ]),
-    );
-  }
-}
-
-/// Album grid tile, 190dp tall, with optional flow number and pins.
-class TileShot extends StatelessWidget {
-  const TileShot({super.key, required this.shot, this.number});
-  final ShotInfo shot;
-  final int? number;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 190,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: _paper,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF3F3F46)),
-      ),
-      child: Stack(children: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            FractionallySizedBox(widthFactor: 0.5, child: _bar(null, 7, _ink)),
-            const SizedBox(height: 10),
-            Container(height: 44, decoration: BoxDecoration(color: _block, borderRadius: BorderRadius.circular(6))),
-            const SizedBox(height: 10),
-            FractionallySizedBox(widthFactor: 0.8, child: _bar(null, 6, _line)),
-            const SizedBox(height: 6),
-            FractionallySizedBox(widthFactor: 0.6, child: _bar(null, 6, _line)),
-          ]),
-        ),
-        Positioned(left: 8, right: 8, bottom: 8, child: _bar(null, 20, shot.button, 6)),
-        if (number != null)
-          Positioned(left: 6, top: 6, child: PinBadge('$number', FluoColors.lime, size: 24)),
-        Positioned(
-          right: 6,
-          bottom: 34,
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            for (final p in shot.pins) Padding(
-              padding: const EdgeInsets.only(left: 3),
-              child: PinBadge(p.letter, p.color),
-            ),
-          ]),
-        ),
       ]),
     );
   }

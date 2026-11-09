@@ -7,6 +7,7 @@ import '../data/repo_scope.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
 import '../ui/new_album_dialog.dart';
+import '../ui/shot_image.dart';
 import 'album.dart';
 import 'settings.dart';
 import 'triage.dart';
@@ -83,7 +84,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                           albumName: sessionAlbum.album.name,
                           newCount: sessionAlbum.pendingCount,
                           status: capture.status,
-                          onReview: () => _push(const TriageScreen()),
+                          onReview: () => _push(TriageScreen(albumId: sessionAlbum.album.id)),
                           onPause: capture.pause,
                           onResume: capture.resume,
                           onFixAccess: capture.fixAccess,
@@ -107,7 +108,8 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                           name: a.album.name,
                           meta:
                               '${screensLabel(a.keptCount)} · ${relativeDay(a.album.updatedAt, now: now)}',
-                          onTap: () => _push(AlbumScreen(title: a.album.name)),
+                          thumbs: a.thumbnailPaths,
+                          onTap: () => _push(AlbumScreen(albumId: a.album.id)),
                         ),
                         const SizedBox(height: 10),
                       ],
@@ -150,11 +152,13 @@ class _SessionCard extends StatelessWidget {
       CaptureStatus.watching => (FluoColors.lime, 'Session on'),
       CaptureStatus.paused => (FluoColors.fgMuted, 'Session paused'),
       CaptureStatus.unsupported => (FluoColors.fgMuted, 'Not available'),
+      // Before the first check has finished: neutral, not a false warning.
+      CaptureStatus.off => (FluoColors.fgMuted, 'Session'),
       _ => (FluoColors.ux, 'Needs photo access'),
     };
     final detail = switch (status) {
-      CaptureStatus.watching ||
-      CaptureStatus.off => 'New screenshots land here automatically',
+      CaptureStatus.watching => 'New screenshots land here automatically',
+      CaptureStatus.off => 'Checking photo access…',
       CaptureStatus.paused => 'Screenshots are not being picked up',
       CaptureStatus.needsPermission => 'Allow photo access so Fluo can see new screenshots. Your photos stay on this phone.',
       CaptureStatus.needsSettings => 'Photo access is off. Turn it on in Settings so Fluo can see new screenshots.',
@@ -251,11 +255,26 @@ class _AlbumRow extends StatelessWidget {
   const _AlbumRow({
     required this.name,
     required this.meta,
+    required this.thumbs,
     required this.onTap,
   });
   final String name;
   final String meta;
+
+  /// Up to three kept screens. Empty slots show a placeholder.
+  final List<String> thumbs;
   final VoidCallback onTap;
+
+  Widget _real(String path) => Container(
+    width: 34,
+    height: 60,
+    clipBehavior: Clip.antiAlias,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(5),
+      border: Border.all(color: FluoColors.border),
+    ),
+    child: ExcludeSemantics(child: ShotImage(path: path, cacheWidth: 80)),
+  );
 
   Widget _thumb(bool lime) => Container(
     width: 34,
@@ -317,11 +336,10 @@ class _AlbumRow extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _thumb(true),
-                const SizedBox(width: 4),
-                _thumb(false),
-                const SizedBox(width: 4),
-                _thumb(false),
+                for (var i = 0; i < 3; i++) ...[
+                  if (i > 0) const SizedBox(width: 4),
+                  i < thumbs.length ? _real(thumbs[i]) : _thumb(i == 0 && thumbs.isEmpty),
+                ],
               ],
             ),
             const SizedBox(width: 12),

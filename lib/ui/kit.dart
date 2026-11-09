@@ -1,6 +1,6 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-import '../data/fake_data.dart';
+import '../data/models.dart';
 import '../theme/tokens.dart';
 
 /// Pushes a screen with a short fade. Motion polish comes in session 8.
@@ -204,14 +204,17 @@ class FluoIconButton extends StatelessWidget {
       onTap: onPressed,
       label: label,
       radius: radius,
-      builder: (_, _) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: FluoColors.borderStrong),
+      builder: (_, _) => Opacity(
+        opacity: onPressed == null ? 0.45 : 1,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: FluoColors.borderStrong),
+          ),
+          child: Icon(icon, size: 20, color: FluoColors.fg),
         ),
-        child: Icon(icon, size: 20, color: FluoColors.fg),
       ),
     );
   }
@@ -239,20 +242,27 @@ class SeverityDot extends StatelessWidget {
   }
 }
 
-/// Lettered pin badge.
+/// Lettered pin badge. [ringed] adds a dark outline so the badge stays
+/// visible on top of any screenshot, light or dark (WCAG 1.4.11).
 class PinBadge extends StatelessWidget {
-  const PinBadge(this.text, this.color, {super.key, this.size = 20, this.fontSize = 12});
+  const PinBadge(this.text, this.color,
+      {super.key, this.size = 20, this.fontSize = 12, this.ringed = false});
   final String text;
   final Color color;
   final double size;
   final double fontSize;
+  final bool ringed;
 
   @override
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: ringed ? Border.all(color: FluoColors.bg, width: 2) : null,
+        ),
         child: Text(text, style: fs(fontSize, w: FontWeight.w600, c: FluoColors.onLime)),
       );
 }
@@ -404,9 +414,13 @@ class FluoField extends StatelessWidget {
     this.height = 44,
     this.fill = FluoColors.bg,
     this.fontSize = 15,
+    this.onChanged,
+    this.placeholder,
   });
   final String label;
   final String initial;
+  final ValueChanged<String>? onChanged;
+  final String? placeholder;
   final double height;
   final Color fill;
   final double fontSize;
@@ -429,6 +443,10 @@ class FluoField extends StatelessWidget {
             textField: true,
             child: TextField(
               initialValue: initial,
+              onChanged: onChanged,
+              placeholder: placeholder == null
+                  ? null
+                  : Text(placeholder!, style: fs(fontSize, c: FluoColors.fgMuted)),
               style: fs(fontSize),
               crossAxisAlignment: CrossAxisAlignment.center,
               textAlignVertical: TextAlignVertical.center,

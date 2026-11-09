@@ -1,95 +1,21 @@
 import 'dart:io';
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fluo/capture/capture_controller.dart';
-import 'package:fluo/capture/capture_scope.dart';
 import 'package:fluo/capture/capture_source.dart';
-import 'package:fluo/data/db.dart';
-import 'package:fluo/data/file_store.dart';
-import 'package:fluo/data/repo_scope.dart';
-import 'package:fluo/data/repository.dart';
 import 'package:fluo/main.dart';
-import 'package:fluo/screens/album.dart';
 import 'package:fluo/screens/albums.dart';
 import 'package:fluo/screens/editor.dart';
 import 'package:fluo/screens/export.dart';
 import 'package:fluo/screens/settings.dart';
-import 'package:fluo/screens/triage.dart';
-import 'package:fluo/theme/app_theme.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'support/fake_source.dart';
-
-FluoRepo _memRepo() {
-  final dir = Directory.systemTemp.createTempSync('fluo_ui_');
-  addTearDown(() => dir.deleteSync(recursive: true));
-  final repo = FluoRepo(FluoDb.openInMemory(), FileStore(dir));
-  addTearDown(repo.close);
-  return repo;
-}
-
-Widget _host(Widget home, {FluoRepo? repo, FakeSource? source}) {
-  final r = repo ?? _memRepo();
-  final c = CaptureController(r, source ?? FakeSource());
-  addTearDown(c.dispose);
-  return RepoScope(
-    repo: r,
-    child: CaptureScope(
-      controller: c,
-      child: ShadcnApp(
-        debugShowCheckedModeBanner: false,
-        theme: fluoTheme(),
-        home: home,
-      ),
-    ),
-  );
-}
-
-/// Albums with a few kept screens, like a used app.
-final _fixedNow = DateTime(2026, 11, 9, 15); // a Monday
-
-FluoRepo _seeded() {
-  final r = _memRepo();
-  r.createAlbum('Checkout flow review', now: _fixedNow);
-  r.createAlbum('Onboarding audit', now: DateTime(2026, 10, 20));
-  return r;
-}
-
-void _setPhone(WidgetTester t) {
-  t.view.physicalSize = const Size(390 * 3, 844 * 3);
-  t.view.devicePixelRatio = 3;
-  addTearDown(t.view.reset);
-}
-
-/// Every node with a tap action must be at least 44x44 dp.
-int _tapNodes = 0;
-
-List<String> _smallTargets(WidgetTester t) {
-  _tapNodes = 0;
-  final bad = <String>[];
-  void visit(SemanticsNode n) {
-    final d = n.getSemanticsData();
-    if (d.hasAction(SemanticsAction.tap) && !n.isInvisible) _tapNodes++;
-    if (d.hasAction(SemanticsAction.tap) &&
-        !n.isInvisible &&
-        (n.rect.width < 44 - 0.5 || n.rect.height < 44 - 0.5)) {
-      bad.add('${d.label.isEmpty ? '(no label)' : d.label} ${n.rect.size}');
-    }
-    n.visitChildren((c) {
-      visit(c);
-      return true;
-    });
-  }
-
-  visit(t.binding.renderViews.first.owner!.semanticsOwner!.rootSemanticsNode!);
-  return bad;
-}
+import 'support/harness.dart';
 
 void main() {
   testWidgets('splash then an empty Albums screen on a fresh install', (tester) async {
-    _setPhone(tester);
-    await tester.pumpWidget(FluoApp(repo: _memRepo(), source: FakeSource()));
+    setPhone(tester);
+    await tester.pumpWidget(FluoApp(repo: memRepo(), source: FakeSource()));
     expect(find.text('FLUO'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1300));
     await tester.pumpAndSettle();
@@ -99,8 +25,8 @@ void main() {
   });
 
   testWidgets('Albums lists real albums with screen counts and dates', (tester) async {
-    _setPhone(tester);
-    await tester.pumpWidget(_host(AlbumsScreen(now: _fixedNow), repo: _seeded()));
+    setPhone(tester);
+    await tester.pumpWidget(host(AlbumsScreen(now: fixedNow), repo: seeded()));
     expect(find.text('Checkout flow review'), findsOneWidget);
     expect(find.text('0 screens · Today'), findsOneWidget);
     expect(find.text('Onboarding audit'), findsOneWidget);
@@ -108,9 +34,9 @@ void main() {
   });
 
   testWidgets('New album asks for a name, creates it and refuses a blank name', (tester) async {
-    _setPhone(tester);
-    final repo = _memRepo();
-    await tester.pumpWidget(_host(const AlbumsScreen(), repo: repo));
+    setPhone(tester);
+    final repo = memRepo();
+    await tester.pumpWidget(host(const AlbumsScreen(), repo: repo));
     await tester.tap(find.text('New album'));
     await tester.pumpAndSettle();
 
@@ -131,9 +57,9 @@ void main() {
   });
 
   testWidgets('Cancel leaves the albums alone', (tester) async {
-    _setPhone(tester);
-    final repo = _memRepo();
-    await tester.pumpWidget(_host(const AlbumsScreen(), repo: repo));
+    setPhone(tester);
+    final repo = memRepo();
+    await tester.pumpWidget(host(const AlbumsScreen(), repo: repo));
     await tester.tap(find.text('New album'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
@@ -142,8 +68,8 @@ void main() {
   });
 
   testWidgets('session card counts pending screenshots and only shows with a session', (tester) async {
-    _setPhone(tester);
-    final repo = _memRepo();
+    setPhone(tester);
+    final repo = memRepo();
     final a = repo.createAlbum('Checkout flow review');
     final f = File('${Directory.systemTemp.path}/fluo_ui_shot_${DateTime.now().microsecondsSinceEpoch}.png')
       ..writeAsBytesSync([1, 2, 3]);
@@ -153,19 +79,29 @@ void main() {
       await repo.addShot(a.id, f);
     });
 
-    await tester.pumpWidget(_host(const AlbumsScreen(), repo: repo));
+    await tester.pumpWidget(host(const AlbumsScreen(), repo: repo));
     expect(find.text('Session on'), findsNothing, reason: 'pending shots alone are not a session');
     expect(find.text('Review 2 new'), findsNothing);
 
     repo.startSession(a.id);
-    await tester.pumpWidget(_host(const AlbumsScreen(), repo: repo));
+    await tester.pumpWidget(host(const AlbumsScreen(), repo: repo));
     expect(find.text('Review 2 new'), findsOneWidget);
+  });
+
+  testWidgets('before the first access check the card is neutral, not a false warning', (tester) async {
+    setPhone(tester);
+    final repo = memRepo();
+    final a = repo.createAlbum('Checkout');
+    repo.startSession(a.id); // status is still "off": sync has not run
+    await tester.pumpWidget(host(const AlbumsScreen(), repo: repo));
+    expect(find.text('Needs photo access'), findsNothing);
+    expect(find.text('Checking photo access…'), findsOneWidget);
   });
 
   group('session card states', () {
     Future<FakeSource> startAlbum(WidgetTester tester, FakeSource src) async {
-      _setPhone(tester);
-      await tester.pumpWidget(_host(const AlbumsScreen(), source: src));
+      setPhone(tester);
+      await tester.pumpWidget(host(const AlbumsScreen(), source: src));
       await tester.tap(find.text('New album'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'Checkout');
@@ -230,15 +166,15 @@ void main() {
       for (final perm in [CapturePermission.granted, CapturePermission.denied, CapturePermission.limited]) {
         final src = FakeSource(perm: perm)..afterRequest = perm;
         await startAlbum(tester, src);
-        expect(_smallTargets(tester), isEmpty, reason: '$perm');
+        expect(smallTargets(tester), isEmpty, reason: '$perm');
       }
       handle.dispose();
     });
   });
 
   testWidgets('app start and resume pick the session back up and import waiting shots', (tester) async {
-    _setPhone(tester);
-    final repo = _memRepo();
+    setPhone(tester);
+    final repo = memRepo();
     final a = repo.createAlbum('Checkout flow review');
     repo.startSession(a.id); // left over from the last run
     final src = FakeSource(perm: CapturePermission.denied);
@@ -266,35 +202,9 @@ void main() {
     expect(find.text('Review 1 new'), findsOneWidget, reason: 'the waiting screenshot was imported');
   });
 
-  testWidgets('navigation: Triage to Album to Editor', (tester) async {
-    _setPhone(tester);
-    await tester.pumpWidget(_host(const TriageScreen()));
-    expect(find.text('Triage'), findsOneWidget);
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    expect(find.text('Flow order'), findsOneWidget);
-    await tester.tap(find.text('Cart'));
-    await tester.pumpAndSettle();
-    expect(find.text('Pin 1'), findsOneWidget);
-  });
-
-  testWidgets('album filter narrows the grid and Grid hides flow numbers', (tester) async {
-    _setPhone(tester);
-    await tester.pumpWidget(_host(const AlbumScreen(title: 'Checkout flow review')));
-    expect(find.text('Welcome'), findsOneWidget);
-    await tester.tap(find.text('Bug 3'));
-    await tester.pumpAndSettle();
-    expect(find.text('Welcome'), findsNothing);
-    expect(find.text('Cart'), findsOneWidget);
-    await tester.tap(find.text('All 19'));
-    await tester.tap(find.text('Grid'));
-    await tester.pumpAndSettle();
-    expect(find.text('Welcome'), findsOneWidget);
-  });
-
   testWidgets('export notice changes when originals are included', (tester) async {
-    _setPhone(tester);
-    await tester.pumpWidget(_host(const ExportScreen()));
+    setPhone(tester);
+    await tester.pumpWidget(host(const ExportScreen()));
     expect(find.text('2 redactions are baked in'), findsOneWidget);
     await tester.tap(find.text('Include original screenshots'));
     await tester.pumpAndSettle();
@@ -305,8 +215,8 @@ void main() {
   });
 
   testWidgets('settings: Wi-Fi row hides when auto-update is off', (tester) async {
-    _setPhone(tester);
-    await tester.pumpWidget(_host(const SettingsScreen()));
+    setPhone(tester);
+    await tester.pumpWidget(host(const SettingsScreen()));
     expect(find.text('Wi-Fi only'), findsOneWidget);
     await tester.tap(find.text('Auto-update'));
     await tester.pumpAndSettle();
@@ -315,21 +225,20 @@ void main() {
 
   group('every tap target is at least 44dp', () {
     final screens = <String, Widget>{
+      // Triage and Album need real shots: see triage_album_test.dart.
       'Albums': const AlbumsScreen(),
-      'Triage': const TriageScreen(),
-      'Album': const AlbumScreen(title: 'Checkout flow review'),
       'Editor': const EditorScreen(),
       'Export': const ExportScreen(),
       'Settings': const SettingsScreen(),
     };
     for (final e in screens.entries) {
       testWidgets(e.key, (tester) async {
-        _setPhone(tester);
+        setPhone(tester);
         final handle = tester.ensureSemantics();
-        await tester.pumpWidget(_host(e.value, repo: _seeded()));
+        await tester.pumpWidget(host(e.value, repo: seeded()));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(_smallTargets(tester), isEmpty);
-        expect(_tapNodes, greaterThan(2), reason: 'no tap targets found');
+        expect(smallTargets(tester), isEmpty);
+        expect(tapNodes, greaterThan(2), reason: 'no tap targets found');
         handle.dispose();
       });
     }

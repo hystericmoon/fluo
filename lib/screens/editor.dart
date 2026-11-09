@@ -1,6 +1,6 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-import '../data/fake_data.dart';
+import '../data/models.dart';
 import '../theme/tokens.dart';
 import '../ui/fake_shot.dart';
 import '../ui/kit.dart';
