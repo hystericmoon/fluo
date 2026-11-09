@@ -47,10 +47,15 @@ class CaptureChannel(private val activity: Activity, messenger: BinaryMessenger)
                     return
                 }
                 // Baseline: only screenshots taken from now on count.
-                prefs.lastId = Gallery.maxId(activity)
-                prefs.watching = true
-                ScreenshotWatchService.start(activity)
-                result.success(null)
+                try {
+                    prefs.lastId = Gallery.maxId(activity)
+                    prefs.watching = true
+                    ScreenshotWatchService.start(activity)
+                    result.success(null)
+                } catch (e: Exception) {
+                    prefs.watching = false
+                    result.error("start_failed", e.message ?: e.javaClass.simpleName, null)
+                }
             }
             "stop" -> {
                 prefs.watching = false
@@ -58,6 +63,15 @@ class CaptureChannel(private val activity: Activity, messenger: BinaryMessenger)
                 result.success(null)
             }
             "drain" -> result.success(drain())
+            "drainShared" -> result.success(
+                ShareIntake.waiting(activity).map { f ->
+                    mapOf("path" to f.absolutePath, "capturedAtMs" to f.name.split('_').getOrNull(1)?.toLongOrNull().let { it ?: f.lastModified() })
+                }
+            )
+            "ackShared" -> {
+                ackIn(ShareIntake.dir(activity), call.arguments as? List<*> ?: emptyList<Any>())
+                result.success(null)
+            }
             "ack" -> {
                 ack(call.arguments as? List<*> ?: emptyList<Any>())
                 result.success(null)
@@ -134,12 +148,14 @@ class CaptureChannel(private val activity: Activity, messenger: BinaryMessenger)
                 )
             }
 
-    private fun ack(paths: List<*>) {
-        val inbox = prefs.inbox.canonicalFile
+    private fun ack(paths: List<*>) = ackIn(prefs.inbox, paths)
+
+    private fun ackIn(folder: File, paths: List<*>) {
+        val root = folder.canonicalFile
         for (p in paths) {
             val f = File(p as? String ?: continue).canonicalFile
-            // Only ever delete inside the inbox.
-            if (f.parentFile == inbox) f.delete()
+            // Only ever delete inside the given folder.
+            if (f.parentFile == root) f.delete()
         }
     }
 
@@ -147,14 +163,17 @@ class CaptureChannel(private val activity: Activity, messenger: BinaryMessenger)
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         CaptureBus.listener = { events?.success(null) }
+        CaptureBus.sharedListener = { events?.success("shared") }
     }
 
     override fun onCancel(arguments: Any?) {
         CaptureBus.listener = null
+        CaptureBus.sharedListener = null
     }
 
     fun dispose() {
         CaptureBus.listener = null
+        CaptureBus.sharedListener = null
         pendingResult = null
     }
 

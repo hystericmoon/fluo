@@ -19,6 +19,7 @@ import 'settings/app_settings.dart';
 import 'settings/settings_scope.dart';
 import 'theme/accent.dart';
 import 'theme/app_theme.dart';
+import 'ui/shared_intake.dart';
 import 'update/update_controller.dart';
 import 'update/update_scope.dart';
 import 'update/update_source.dart';
@@ -134,7 +135,9 @@ class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
                       title: 'Fluo',
                       debugShowCheckedModeBanner: false,
                       theme: fluoTheme(accent: _settings.accent),
-                      home: _showSplash ? const SplashScreen() : const AlbumsScreen(),
+                      home: _showSplash
+                          ? const SplashScreen()
+                          : const SharedIntake(child: AlbumsScreen()),
                     ),
                   ),
                 ),

@@ -131,7 +131,10 @@ class ScreenshotWatchService : Service() {
                     val id = c.getLong(iId)
                     // A row still being written: stop here and look again on the
                     // next change. Do not move past it or it would be skipped.
-                    if (iPending >= 0 && c.getInt(iPending) == 1) break
+                    // A row stuck pending for over a minute belongs to some other
+                    // app that never finished; skip it so it cannot block us forever.
+                    if (iPending >= 0 && c.getInt(iPending) == 1 &&
+                        System.currentTimeMillis() - c.getLong(iAdded) * 1000 < PENDING_GRACE_MS) break
 
                     val name = c.getString(iName)
                     if (ScreenshotFilter.isScreenshot(c.getString(iPath), name)) {
@@ -192,6 +195,7 @@ class ScreenshotWatchService : Service() {
         private const val CHANNEL_ID = "fluo_capture"
         private const val NOTIFICATION_ID = 4101
         private const val MAX_COPY_TRIES = 3
+        private const val PENDING_GRACE_MS = 60_000L
 
         fun start(context: android.content.Context) {
             val i = Intent(context, ScreenshotWatchService::class.java)

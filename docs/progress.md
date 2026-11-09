@@ -6,6 +6,8 @@ Session 10 is written up in `docs/release.md`. Decision: no Play Store or App St
 - If a store release is ever wanted: trademark search, upload keystore, Play Console forms (texts drafted in `docs/release.md` and `docs/privacy.md`).
 
 ## Open items
+- Post-session 10 (device feedback): FIXED probable cause of "not detected" and a dead Resume button: `Gallery.maxId` put `LIMIT 1` in the sort order, which Android 11+ rejects, so `start` threw and the card stayed on Paused. Now uses `QUERY_ARG_LIMIT`; `start` errors reach Dart, and the card shows "Could not start" with Try again. A row stuck as pending for over a minute no longer blocks the watcher. NOT yet verified on a phone.
+- Post-session 10: NEW fallback: Fluo is an Android share target for images (`ShareIntake.kt`, `lib/ui/shared_intake.dart`). Share a screenshot to Fluo, then pick an album or create a new one; it arrives as a pending screen. Cancel discards the shared copy. Sharing does not start a session.
 - Session 7: Albums, Triage, Album, Editor and Export are real. Only Settings (session 9) still shows fixed content.
 - Session 3: `Shot.width` and `height` are optional because reading them needs an image decode; the capture plugin should supply them.
 - Session 3: deleting a pin renumbers the rest, so pin numbers in an exported Claude pack can change between exports. Fine for now; revisit if pins need stable IDs in exports.
@@ -64,3 +66,4 @@ Session 10 is written up in `docs/release.md`. Decision: no Play Store or App St
 - 2026-11-09: Session 8 motion and access. Motion kit (Hold Button, Swipe Row, Undo Fuse, live border, crop frame entry, card entrance) with reduced motion; delete album with undo; button reordering; buttons for adding and moving boxes, arrows and redactions; contrast, label, 44dp, large-text and keyboard audits; docs/accessibility.md.
 - 2026-11-09: Session 9 settings and updates. Settings table (migration v3, tested on an upgraded v2 database), five accent themes applied app-wide via `context.accent`, Reduce motion switch, update controller with Wi-Fi only and a 12-hour gap, real version display. 445 tests, Kotlin tests and debug APK pass.
 - 2026-11-09: Session 10 release checks. `docs/release.md`: release signing from `key.properties`, app bundle builds, release APK has no INTERNET permission, font licences bundled with a credit and privacy text in Settings, store listing and `specialUse` declaration drafted. Found that the application ID is already taken on Play.
+- 2026-11-09: Fixed capture start failure on Android 11+, added Could-not-start state and the share-to-Fluo fallback. 454 tests, Kotlin tests and debug APK pass.

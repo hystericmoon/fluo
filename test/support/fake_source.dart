@@ -29,6 +29,7 @@ class FakeSource implements CaptureSource {
   Future<void> openSettings() async => settings++;
   @override
   Future<void> start() async {
+    if (startError != null) throw startError!;
     watching = true;
     starts++;
   }
@@ -48,6 +49,26 @@ class FakeSource implements CaptureSource {
       inbox.removeWhere((s) => s.path == x);
     }
   }
+
+  final shared = <IncomingShot>[];
+  final sharedAcked = <String>[];
+  final _sharedCtl = StreamController<void>.broadcast();
+  @override
+  Future<List<IncomingShot>> drainShared() async => List.of(shared);
+  @override
+  Future<void> ackShared(List<String> paths) async {
+    for (final x in paths) {
+      sharedAcked.add(x);
+      shared.removeWhere((s) => s.path == x);
+    }
+  }
+
+  @override
+  Stream<void> get sharedIn => _sharedCtl.stream;
+  void pingShared() => _sharedCtl.add(null);
+
+  /// When set, [start] throws, like a native failure would.
+  Object? startError;
 
   @override
   Stream<void> get captured => _ctl.stream;

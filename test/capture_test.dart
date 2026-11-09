@@ -112,6 +112,20 @@ void main() {
       expect(src.watching, isTrue);
     });
 
+    test('a failed start shows failed (not Paused) and Resume recovers once it works', () async {
+      await c.begin(repo.createAlbum('A').id);
+      await c.pause();
+      src.startError = PlatformException(code: 'start_failed', message: 'boom');
+      await c.resume();
+      expect(c.status, CaptureStatus.failed);
+      expect(c.lastError, contains('boom'));
+      expect(repo.activeSession()!.paused, isFalse);
+      src.startError = null;
+      await c.fixAccess(); // the card's "Try again"
+      expect(c.status, CaptureStatus.watching);
+      expect(c.lastError, isNull);
+    });
+
     test('an unsupported platform reports it and never starts', () async {
       c.dispose();
       src = FakeSource(isSupported: false);
@@ -267,4 +281,51 @@ void main() {
       expect(calls[3].arguments, ['/x/a.png']);
     });
   });
+
+  group('shared screenshots', () {
+    IncomingShot share(String name) {
+      final f = File(p.join(tmp.path, 'shared', name))
+        ..createSync(recursive: true)
+        ..writeAsBytesSync([1, 2, 3]);
+      final s = IncomingShot(path: f.path, capturedAt: DateTime(2026, 11, 9, 13));
+      src.shared.add(s);
+      return s;
+    }
+
+    test('addShared stores them as pending shots in the chosen album and clears the folder', () async {
+      final a = repo.createAlbum('Checkout');
+      final one = share('shared_1_0.png');
+      final two = share('shared_1_1.png');
+      final waiting = await c.sharedWaiting();
+      expect(waiting, hasLength(2));
+      expect(await c.addShared(a.id, waiting), 2);
+      expect(repo.shotsIn(a.id), hasLength(2));
+      expect(src.sharedAcked, containsAll([one.path, two.path]));
+      expect(src.shared, isEmpty);
+    });
+
+    test('works with no active session', () async {
+      final a = repo.createAlbum('Loose');
+      expect(repo.activeSession(), isNull);
+      share('shared_2_0.png');
+      expect(await c.addShared(a.id, await c.sharedWaiting()), 1);
+    });
+
+    test('discardShared removes them without adding anything', () async {
+      final a = repo.createAlbum('A');
+      share('shared_3_0.png');
+      await c.discardShared(await c.sharedWaiting());
+      expect(src.shared, isEmpty);
+      expect(repo.shotsIn(a.id), isEmpty);
+    });
+
+    test('a share while the app is open bumps sharedArrived', () async {
+      var bumps = 0;
+      c.sharedArrived.addListener(() => bumps++);
+      src.pingShared();
+      await Future<void>.delayed(Duration.zero);
+      expect(bumps, 1);
+    });
+  });
 }
+

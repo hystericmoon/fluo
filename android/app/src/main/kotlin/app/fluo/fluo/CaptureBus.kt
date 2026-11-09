@@ -12,10 +12,19 @@ object CaptureBus {
     @Volatile
     var listener: (() -> Unit)? = null
 
+    /** Fires when screenshots were sent to Fluo from the share sheet. */
+    @Volatile
+    var sharedListener: (() -> Unit)? = null
+
     private val main = Handler(Looper.getMainLooper())
 
     fun notifyCaptured() {
         val l = listener ?: return
+        main.post { l() }
+    }
+
+    fun notifyShared() {
+        val l = sharedListener ?: return
         main.post { l() }
     }
 }

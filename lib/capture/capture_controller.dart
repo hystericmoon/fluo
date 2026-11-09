@@ -20,6 +20,9 @@ enum CaptureStatus {
 
   /// Android 14 "selected photos": cannot see new screenshots.
   limitedAccess,
+
+  /// The platform could not start watching. [CaptureController.lastError] says why.
+  failed,
   unsupported,
 }
 
@@ -28,11 +31,19 @@ enum CaptureStatus {
 class CaptureController extends ChangeNotifier {
   CaptureController(this._repo, this._source) {
     _sub = _source.captured.listen((_) => importPending());
+    _sharedSub = _source.sharedIn.listen((_) => sharedArrived.value++);
   }
 
   final FluoRepo _repo;
   final CaptureSource _source;
   StreamSubscription<void>? _sub;
+  StreamSubscription<void>? _sharedSub;
+
+  /// Bumps when something is shared to Fluo while it is open.
+  final ValueNotifier<int> sharedArrived = ValueNotifier(0);
+
+  /// Why the last start failed, for support and the card.
+  String? lastError;
 
   CaptureStatus _status = CaptureStatus.off;
   CaptureStatus get status => _status;
@@ -76,7 +87,16 @@ class CaptureController extends ChangeNotifier {
     }
     switch (p) {
       case CapturePermission.granted:
-        await _source.start();
+        try {
+          await _source.start();
+        } catch (e) {
+          // Without this the card stayed on "Paused" after Resume, with no clue.
+          debugPrint('Fluo: could not start watching: $e');
+          lastError = e.toString();
+          _set(CaptureStatus.failed);
+          return;
+        }
+        lastError = null;
         _set(CaptureStatus.watching);
         await importPending();
       case CapturePermission.limited:
@@ -111,6 +131,7 @@ class CaptureController extends ChangeNotifier {
 
   /// The card's permission button: ask, or open Settings if asking is over.
   Future<void> fixAccess() async {
+    if (_status == CaptureStatus.failed) return sync(askPermission: true);
     final p = await _source.permission();
     if (p == CapturePermission.denied) {
       await sync(askPermission: true);
@@ -169,10 +190,45 @@ class CaptureController extends ChangeNotifier {
     return added;
   }
 
+  /// Screenshots sent to Fluo that still need an album.
+  Future<List<IncomingShot>> sharedWaiting() => _source.drainShared();
+
+  /// Stores shared screenshots in [albumId] as pending shots. Returns how many
+  /// were added. Whatever was stored is removed from the share folder.
+  Future<int> addShared(String albumId, List<IncomingShot> shots) async {
+    var added = 0;
+    for (final shot in shots) {
+      try {
+        await _repo.addShot(
+          albumId,
+          File(shot.path),
+          width: shot.width,
+          height: shot.height,
+          capturedAt: shot.capturedAt,
+        );
+        await _source.ackShared([shot.path]);
+        added++;
+      } catch (e) {
+        debugPrint('Fluo: could not import shared ${shot.path}: $e');
+      }
+    }
+    if (added > 0 && !_disposed) {
+      imported.value++;
+      notifyListeners();
+    }
+    return added;
+  }
+
+  /// Throws shared screenshots away (the originals stay in the app that sent them).
+  Future<void> discardShared(List<IncomingShot> shots) =>
+      _source.ackShared([for (final s in shots) s.path]);
+
   @override
   void dispose() {
     _disposed = true;
     _sub?.cancel();
+    _sharedSub?.cancel();
+    sharedArrived.dispose();
     imported.dispose();
     super.dispose();
   }

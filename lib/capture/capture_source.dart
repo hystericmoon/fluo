@@ -48,6 +48,15 @@ abstract class CaptureSource {
 
   /// Fires when something new landed in the inbox.
   Stream<void> get captured;
+
+  /// Screenshots sent to Fluo from the system share sheet, waiting for the
+  /// user to choose an album. Separate from the inbox: they are not session
+  /// captures.
+  Future<List<IncomingShot>> drainShared();
+  Future<void> ackShared(List<String> paths);
+
+  /// Fires when something was shared to Fluo while the app is running.
+  Stream<void> get sharedIn;
 }
 
 /// Platforms without a capture plugin yet (iOS and desktop come later).
@@ -70,6 +79,12 @@ class NoCaptureSource implements CaptureSource {
   Future<void> ack(List<String> paths) async {}
   @override
   Stream<void> get captured => const Stream.empty();
+  @override
+  Future<List<IncomingShot>> drainShared() async => const [];
+  @override
+  Future<void> ackShared(List<String> paths) async {}
+  @override
+  Stream<void> get sharedIn => const Stream.empty();
 }
 
 /// Talks to `CaptureChannel.kt`.
@@ -111,8 +126,16 @@ class AndroidCaptureSource implements CaptureSource {
   Future<void> stop() => _m.invokeMethod<void>('stop');
 
   @override
-  Future<List<IncomingShot>> drain() async {
-    final raw = await _m.invokeListMethod<Map<Object?, Object?>>('drain') ?? const [];
+  Future<List<IncomingShot>> drain() => _drain('drain');
+
+  @override
+  Future<List<IncomingShot>> drainShared() => _drain('drainShared');
+
+  @override
+  Future<void> ackShared(List<String> paths) => _m.invokeMethod<void>('ackShared', paths);
+
+  Future<List<IncomingShot>> _drain(String method) async {
+    final raw = await _m.invokeListMethod<Map<Object?, Object?>>(method) ?? const [];
     return [
       for (final m in raw)
         IncomingShot(
@@ -127,6 +150,13 @@ class AndroidCaptureSource implements CaptureSource {
   @override
   Future<void> ack(List<String> paths) => _m.invokeMethod<void>('ack', paths);
 
+  // One native listener serves both streams: a `null` event is a new
+  // screenshot in the inbox, "shared" is something sent from the share sheet.
+  late final Stream<Object?> _events = _e.receiveBroadcastStream();
+
   @override
-  Stream<void> get captured => _e.receiveBroadcastStream().map((_) {});
+  Stream<void> get captured => _events.where((e) => e != 'shared').map((_) {});
+
+  @override
+  Stream<void> get sharedIn => _events.where((e) => e == 'shared').map((_) {});
 }

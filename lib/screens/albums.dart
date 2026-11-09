@@ -213,7 +213,8 @@ class _SessionCard extends StatelessWidget {
   bool get _problem =>
       status == CaptureStatus.needsPermission ||
       status == CaptureStatus.needsSettings ||
-      status == CaptureStatus.limitedAccess;
+      status == CaptureStatus.limitedAccess ||
+      status == CaptureStatus.failed;
 
   @override
   Widget build(BuildContext context) {
@@ -222,23 +223,29 @@ class _SessionCard extends StatelessWidget {
       CaptureStatus.watching => (context.accent.color, 'Session on'),
       CaptureStatus.paused => (FluoColors.fgMuted, 'Session paused'),
       CaptureStatus.unsupported => (FluoColors.fgMuted, 'Not available'),
+      CaptureStatus.failed => (FluoColors.ux, 'Could not start'),
       // Before the first check has finished: neutral, not a false warning.
       CaptureStatus.off => (FluoColors.fgMuted, 'Session'),
       _ => (FluoColors.ux, 'Needs photo access'),
     };
     final detail = switch (status) {
-      CaptureStatus.watching => 'New screenshots land here automatically',
+      CaptureStatus.watching =>
+          'New screenshots land here automatically. Missed one? Share it to Fluo from your gallery.',
       CaptureStatus.off => 'Checking photo access…',
       CaptureStatus.paused => 'Screenshots are not being picked up',
       CaptureStatus.needsPermission => 'Allow photo access so Fluo can see new screenshots. Your photos stay on this phone.',
       CaptureStatus.needsSettings => 'Photo access is off. Turn it on in Settings so Fluo can see new screenshots.',
       CaptureStatus.limitedAccess => 'Fluo can only see the photos you picked, so it would miss new screenshots. Allow all photos in Settings.',
+      CaptureStatus.failed =>
+        'Fluo could not start watching for screenshots. Try again, or share a screenshot to Fluo from your gallery and pick an album.',
       CaptureStatus.unsupported =>
         'Screenshot detection is not available on this device yet',
     };
-    final fixLabel = status == CaptureStatus.needsPermission
-        ? 'Allow photo access'
-        : 'Open Settings';
+    final fixLabel = switch (status) {
+      CaptureStatus.needsPermission => 'Allow photo access',
+      CaptureStatus.failed => 'Try again',
+      _ => 'Open Settings',
+    };
 
     return Semantics(
       container: true,
