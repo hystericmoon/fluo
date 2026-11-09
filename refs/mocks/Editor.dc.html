@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#09090B}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #C8FF3D;outline-offset:2px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#09090B;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;padding:24px 20px 0;gap:12px;overflow:hidden">
+
+<header style="display:flex;align-items:center;gap:10px">
+<a href="Grid.dc.html" aria-label="Back to album" style="width:44px;height:44px;box-sizing:border-box;border-radius:10px;border:1px solid #6B6B76;display:flex;align-items:center;justify-content:center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+</a>
+<div style="flex-grow:1;min-width:0">
+<h1 style="margin:0;font-size:17px;font-weight:600">Cart</h1>
+<div style="font-size:13px;color:#A1A1AA;margin-top:2px">2 of 19 · Checkout flow review</div>
+</div>
+<a href="Grid.dc.html" style="height:44px;box-sizing:border-box;padding:0 18px;border-radius:10px;background:#C8FF3D;color:#0B0B0F;display:flex;align-items:center;font-size:15px;font-weight:500">Done</a>
+</header>
+
+<div style="height:400px;box-sizing:border-box;border-radius:14px;background:#121215;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center">
+<div role="img" aria-label="Cart screenshot with pin 1 on the order total, pin 2 on the second item, a red box around the Pay now button and a redacted block over the email line" style="position:relative;width:216px;height:384px;border-radius:12px;background:#F4F4F5;overflow:visible">
+<span style="position:absolute;left:12px;top:12px;font-size:12px;font-weight:600;color:#18181B">Your cart</span>
+<span style="position:absolute;left:10px;top:34px;width:104px;height:18px;border-radius:3px;background:#000000"></span>
+<span style="position:absolute;left:12px;right:12px;top:62px;display:flex;flex-direction:column;gap:8px">
+<span style="display:flex;gap:8px;align-items:center;height:36px"><span style="width:36px;height:36px;border-radius:8px;background:#E4E4E7"></span><span style="flex-grow:1;display:flex;flex-direction:column;gap:6px"><span style="height:7px;width:75%;border-radius:4px;background:#27272A"></span><span style="height:6px;width:45%;border-radius:3px;background:#D4D4D8"></span></span><span style="height:7px;width:26px;border-radius:4px;background:#27272A"></span></span>
+<span style="display:flex;gap:8px;align-items:center;height:36px"><span style="width:36px;height:36px;border-radius:8px;background:#E4E4E7"></span><span style="flex-grow:1;display:flex;flex-direction:column;gap:6px"><span style="height:7px;width:65%;border-radius:4px;background:#27272A"></span><span style="height:6px;width:40%;border-radius:3px;background:#D4D4D8"></span></span><span style="height:7px;width:26px;border-radius:4px;background:#27272A"></span></span>
+<span style="display:flex;gap:8px;align-items:center;height:36px"><span style="width:36px;height:36px;border-radius:8px;background:#E4E4E7"></span><span style="flex-grow:1;display:flex;flex-direction:column;gap:6px"><span style="height:7px;width:70%;border-radius:4px;background:#27272A"></span><span style="height:6px;width:42%;border-radius:3px;background:#D4D4D8"></span></span><span style="height:7px;width:26px;border-radius:4px;background:#27272A"></span></span>
+</span>
+<span style="position:absolute;left:12px;right:12px;top:196px;height:26px;box-sizing:border-box;border-radius:8px;border:1px solid #D4D4D8;background:#FFFFFF"></span>
+<span style="position:absolute;left:12px;right:12px;top:236px;display:flex;flex-direction:column;gap:9px">
+<span style="display:flex;justify-content:space-between"><span style="height:6px;width:44px;border-radius:3px;background:#D4D4D8"></span><span style="height:6px;width:28px;border-radius:3px;background:#D4D4D8"></span></span>
+<span style="display:flex;justify-content:space-between"><span style="height:6px;width:38px;border-radius:3px;background:#D4D4D8"></span><span style="height:6px;width:28px;border-radius:3px;background:#D4D4D8"></span></span>
+<span style="display:flex;justify-content:space-between"><span style="height:8px;width:34px;border-radius:4px;background:#27272A"></span><span style="height:8px;width:32px;border-radius:4px;background:#27272A"></span></span>
+</span>
+<span style="position:absolute;left:12px;right:12px;bottom:14px;height:40px;border-radius:10px;background:#2563EB;color:#FFFFFF;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">Pay now</span>
+<span style="position:absolute;left:6px;top:322px;width:204px;height:52px;box-sizing:border-box;border-radius:10px;border:2px solid #F87171"></span>
+<span style="position:absolute;left:170px;top:112px;width:24px;height:24px;border-radius:12px;background:#FBBF24;color:#0B0B0F;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center">2</span>
+<span style="position:absolute;left:166px;top:260px;width:24px;height:24px;border-radius:12px;background:#F87171;color:#0B0B0F;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #F4F4F5,0 0 0 4px #18181B">1</span>
+</div>
+</div>
+
+<div style="display:flex;gap:8px;justify-content:center" role="toolbar" aria-label="Edit tools">
+<button type="button" aria-label="Crop" style="width:50px;height:50px;border-radius:12px;border:1px solid #2E2E33;background:#18181B;color:#FAFAFA;display:flex;align-items:center;justify-content:center;padding:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/></svg></button>
+<button type="button" aria-label="Pen" style="width:50px;height:50px;border-radius:12px;border:1px solid #2E2E33;background:#18181B;color:#FAFAFA;display:flex;align-items:center;justify-content:center;padding:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+<button type="button" aria-label="Arrow" style="width:50px;height:50px;border-radius:12px;border:1px solid #2E2E33;background:#18181B;color:#FAFAFA;display:flex;align-items:center;justify-content:center;padding:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19L19 5M9 5h10v10"/></svg></button>
+<button type="button" aria-label="Box" style="width:50px;height:50px;border-radius:12px;border:1px solid #2E2E33;background:#18181B;color:#FAFAFA;display:flex;align-items:center;justify-content:center;padding:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/></svg></button>
+<button type="button" aria-label="Pin" aria-pressed="true" style="width:50px;height:50px;border-radius:12px;border:1px solid #C8FF3D;background:#C8FF3D;color:#0B0B0F;display:flex;align-items:center;justify-content:center;padding:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></button>
+<button type="button" aria-label="Redact" style="width:50px;height:50px;border-radius:12px;border:1px solid #2E2E33;background:#18181B;color:#FAFAFA;display:flex;align-items:center;justify-content:center;padding:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4 9.5 6a14 14 0 0 1-2.4 3.3M6.6 6.7C4.4 8.2 3 10.4 2.5 12c1 2 4.5 6 9.5 6 1.5 0 2.8-.4 4-1"/></svg></button>
+</div>
+
+<section aria-label="Pin details" style="flex-grow:1;margin:0 -20px;padding:16px 20px;background:#18181B;border-top:1px solid #2E2E33;border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:8px">
+<h2 style="margin:0;font-size:15px;font-weight:600;flex-grow:1">Pin 1</h2>
+<button type="button" aria-pressed="true" style="height:44px;padding:0 12px;border-radius:10px;border:1px solid #F87171;background:#2A1416;color:#F87171;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#F87171"></span>Bug</button>
+<button type="button" aria-pressed="false" style="height:44px;padding:0 12px;border-radius:10px;border:1px solid #6B6B76;background:transparent;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:2px;background:#FBBF24"></span>UX</button>
+<button type="button" aria-pressed="false" style="height:44px;padding:0 12px;border-radius:10px;border:1px solid #6B6B76;background:transparent;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;background:#38BDF8;transform:rotate(45deg)"></span>A11y</button>
+<button type="button" aria-label="Delete pin 1" style="width:44px;height:44px;border-radius:10px;border:1px solid #6B6B76;background:transparent;color:#FAFAFA;display:flex;align-items:center;justify-content:center;padding:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+</div>
+<div style="display:flex;flex-direction:column;gap:4px">
+<label for="pin-note" style="font-size:13px;font-weight:500;color:#A1A1AA">Note on this pin</label>
+<input id="pin-note" type="text" value="Total changes after shipping is added" style="height:44px;box-sizing:border-box;border-radius:10px;border:1px solid #6B6B76;background:#09090B;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:15px;padding:0 14px">
+</div>
+<div style="display:flex;flex-direction:column;gap:4px">
+<label for="caption" style="font-size:13px;font-weight:500;color:#A1A1AA">Caption for this screen</label>
+<input id="caption" type="text" value="Cart: order total changes after shipping" style="height:44px;box-sizing:border-box;border-radius:10px;border:1px solid #6B6B76;background:#09090B;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:15px;padding:0 14px">
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

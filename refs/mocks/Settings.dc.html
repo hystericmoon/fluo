@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#09090B}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #C8FF3D;outline-offset:2px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#09090B;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;padding:24px 20px;gap:16px;overflow:hidden">
+
+<header style="display:flex;align-items:center;gap:10px">
+<a href="Main.dc.html" aria-label="Back to albums" style="width:44px;height:44px;box-sizing:border-box;border-radius:10px;border:1px solid #6B6B76;display:flex;align-items:center;justify-content:center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+</a>
+<h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-0.02em;flex-grow:1">Settings</h1>
+</header>
+
+<section aria-labelledby="appearance-h" style="border:1px solid #2E2E33;border-radius:16px;background:#18181B;padding:16px;display:flex;flex-direction:column;gap:12px">
+<h2 id="appearance-h" style="margin:0;font-size:15px;font-weight:600">Appearance</h2>
+
+<div role="group" aria-labelledby="theme-label" style="display:flex;flex-direction:column;gap:8px">
+<span id="theme-label" style="font-size:13px;font-weight:500;color:#A1A1AA">Color theme</span>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+<sc-for list="{{themes}}" as="th" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{th.on}}" onClick="{{th.pick}}" style="height:44px;box-sizing:border-box;border-radius:12px;border:1px solid {{th.border}};background:{{th.bg}};color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;padding:0 12px">
+<span style="width:18px;height:18px;border-radius:50%;background:{{th.color}};flex-shrink:0"></span>
+<span style="flex-grow:1;text-align:left">{{th.name}}</span>
+<sc-if value="{{th.on}}" hint-placeholder-val="{{false}}">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{th.text}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+</sc-if>
+</button>
+</sc-for>
+</div>
+<span style="font-size:13px;color:#A1A1AA">Neon lime is the default theme.</span>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;font-weight:500;color:#A1A1AA">Preview</span>
+<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid #2E2E33;background:#09090B">
+<span style="height:44px;padding:0 16px;border-radius:10px;background:{{accent}};color:#0B0B0F;font-size:15px;font-weight:500;display:flex;align-items:center">Export</span>
+<span style="height:44px;box-sizing:border-box;padding:0 14px;border-radius:22px;border:1px solid {{accent}};background:{{accentSoft}};color:{{accentText}};font-size:14px;font-weight:500;display:flex;align-items:center">All 19</span>
+<span style="width:24px;height:24px;border-radius:12px;background:{{accent}};color:#0B0B0F;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">1</span>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="updates-h" style="border:1px solid #2E2E33;border-radius:16px;background:#18181B;padding:16px 16px 12px;display:flex;flex-direction:column">
+<h2 id="updates-h" style="margin:0 0 4px;font-size:15px;font-weight:600">Updates</h2>
+
+<label style="display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;box-sizing:border-box">
+<span style="flex-grow:1;min-width:0">
+<span style="display:block;font-size:15px;font-weight:500">Auto-update</span>
+<span style="display:block;font-size:13px;color:#A1A1AA;margin-top:2px;line-height:1.4">Download and install new versions in the background.</span>
+</span>
+<input type="checkbox" role="switch" checked="{{auto}}" onChange="{{toggleAuto}}" style="width:24px;height:24px;margin:0;accent-color:{{accent}};flex-shrink:0">
+</label>
+
+<sc-if value="{{auto}}" hint-placeholder-val="{{true}}">
+<label style="display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;box-sizing:border-box;border-top:1px solid #2E2E33">
+<span style="flex-grow:1;min-width:0">
+<span style="display:block;font-size:15px;font-weight:500">Wi-Fi only</span>
+<span style="display:block;font-size:13px;color:#A1A1AA;margin-top:2px;line-height:1.4">Skip mobile data when downloading updates.</span>
+</span>
+<input type="checkbox" role="switch" checked="{{wifi}}" onChange="{{toggleWifi}}" style="width:24px;height:24px;margin:0;accent-color:{{accent}};flex-shrink:0">
+</label>
+</sc-if>
+
+<div style="display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;box-sizing:border-box;border-top:1px solid #2E2E33">
+<div style="flex-grow:1;min-width:0">
+<div style="font-size:15px;font-weight:500">Version [x.y.z]</div>
+<div style="font-size:13px;color:#A1A1AA;margin-top:2px;line-height:1.4">{{status}}</div>
+</div>
+<button type="button" style="height:44px;padding:0 16px;border-radius:10px;border:1px solid #6B6B76;background:transparent;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500;flex-shrink:0">Check for updates</button>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const themeId = s.theme || 'lime';
+    const auto = s.auto === undefined ? true : !!s.auto;
+    const wifi = s.wifi === undefined ? true : !!s.wifi;
+    const themes = [
+      { id: 'lime', name: 'Neon lime', color: '#C8FF3D', soft: '#1B2508', text: '#D8FF85' },
+      { id: 'violet', name: 'Violet', color: '#8B7CF6', soft: '#1F1B3A', text: '#C9C2FF' },
+      { id: 'cyan', name: 'Cyan', color: '#22D3EE', soft: '#0B2A30', text: '#8BE8F7' },
+      { id: 'orange', name: 'Orange', color: '#FF8A3D', soft: '#2E1A0B', text: '#FFC08F' },
+      { id: 'pink', name: 'Pink', color: '#FF5FA2', soft: '#2E0F1F', text: '#FFA8CD' }
+    ];
+    const cur = themes.find((t) => t.id === themeId) || themes[0];
+    return {
+      accent: cur.color,
+      accentSoft: cur.soft,
+      accentText: cur.text,
+      themes: themes.map((t) => ({
+        ...t,
+        on: t.id === themeId,
+        border: t.id === themeId ? t.color : '#6B6B76',
+        bg: t.id === themeId ? t.soft : 'transparent',
+        pick: () => this.setState({ theme: t.id })
+      })),
+      auto,
+      wifi,
+      toggleAuto: () => this.setState({ auto: !auto }),
+      toggleWifi: () => this.setState({ wifi: !wifi }),
+      status: auto ? 'Up to date. Auto-update is on.' : 'Auto-update is off. Check manually.'
+    };
+  }
+}
+</script>
+</body>
+</html>

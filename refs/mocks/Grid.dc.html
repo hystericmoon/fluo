@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Album, flow order</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#09090B}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:2px solid #C8FF3D;outline-offset:2px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#09090B;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;padding:24px 20px 0;gap:14px;overflow:hidden">
+
+<header style="display:flex;align-items:center;gap:10px">
+<a href="Main.dc.html" aria-label="Back to albums" style="width:44px;height:44px;box-sizing:border-box;border-radius:10px;border:1px solid #6B6B76;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+</a>
+<h1 style="margin:0;font-size:17px;font-weight:600;flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Checkout flow review</h1>
+<a href="Export.dc.html" style="height:44px;box-sizing:border-box;padding:0 16px;border-radius:10px;background:#C8FF3D;color:#0B0B0F;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;flex-shrink:0">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+Export
+</a>
+</header>
+
+<div style="display:flex;border:1px solid #6B6B76;border-radius:10px;overflow:hidden">
+<button type="button" aria-pressed="{{gridOn}}" onClick="{{setGrid}}" style="flex:1;height:44px;border:0;background:{{gridBg}};color:{{gridInk}};font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500">Grid</button>
+<button type="button" aria-pressed="{{flowOn}}" onClick="{{setFlow}}" style="flex:1;height:44px;border:0;background:{{flowBg}};color:{{flowInk}};font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500">Flow order</button>
+</div>
+
+<div style="display:flex;gap:8px">
+<button type="button" aria-pressed="true" style="height:44px;padding:0 14px;border-radius:22px;border:1px solid #C8FF3D;background:#1B2508;color:#D8FF85;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500">All 19</button>
+<button type="button" aria-pressed="false" style="height:44px;padding:0 14px;border-radius:22px;border:1px solid #6B6B76;background:transparent;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#F87171"></span>Bug 3</button>
+<button type="button" aria-pressed="false" style="height:44px;padding:0 14px;border-radius:22px;border:1px solid #6B6B76;background:transparent;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:2px;background:#FBBF24"></span>UX 5</button>
+<button type="button" aria-pressed="false" style="height:44px;padding:0 14px;border-radius:22px;border:1px solid #6B6B76;background:transparent;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;background:#38BDF8;transform:rotate(45deg)"></span>A11y 2</button>
+</div>
+
+<div style="flex-grow:1;min-height:0;overflow:hidden">
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="9">
+<a href="Editor.dc.html" style="display:block">
+<span style="position:relative;display:block;height:190px;box-sizing:border-box;border-radius:10px;background:#F4F4F5;border:1px solid #3F3F46;overflow:hidden;padding:8px">
+<span style="display:block;height:7px;width:50%;border-radius:4px;background:#27272A"></span>
+<span style="display:block;height:44px;margin-top:10px;border-radius:6px;background:#E4E4E7"></span>
+<span style="display:block;height:6px;width:80%;margin-top:10px;border-radius:3px;background:#D4D4D8"></span>
+<span style="display:block;height:6px;width:60%;margin-top:6px;border-radius:3px;background:#D4D4D8"></span>
+<span style="position:absolute;left:8px;right:8px;bottom:8px;height:20px;border-radius:6px;background:{{t.btn}}"></span>
+<sc-if value="{{t.showNum}}" hint-placeholder-val="{{true}}">
+<span style="position:absolute;left:6px;top:6px;width:24px;height:24px;border-radius:12px;background:#C8FF3D;color:#0B0B0F;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">{{t.n}}</span>
+</sc-if>
+<span style="position:absolute;right:6px;bottom:34px;display:flex;gap:3px">
+<sc-for list="{{t.pins}}" as="p" hint-placeholder-count="1">
+<span style="width:20px;height:20px;border-radius:10px;background:{{p.bg}};color:#0B0B0F;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">{{p.k}}</span>
+</sc-for>
+</span>
+</span>
+<span style="display:block;margin-top:6px;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.name}}</span>
+</a>
+</sc-for>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = (this.state && this.state.mode) || 'flow';
+    const flow = mode === 'flow';
+    const B = { k: 'B', bg: '#F87171' };
+    const U = { k: 'U', bg: '#FBBF24' };
+    const A = { k: 'A', bg: '#38BDF8' };
+    const base = [
+      { name: 'Welcome', pins: [], btn: '#2563EB' },
+      { name: 'Cart', pins: [B, U], btn: '#2563EB' },
+      { name: 'Address', pins: [U], btn: '#16A34A' },
+      { name: 'Payment', pins: [A, B], btn: '#2563EB' },
+      { name: 'Review order', pins: [], btn: '#16A34A' },
+      { name: 'Confirmation', pins: [], btn: '#7C3AED' },
+      { name: 'Receipt', pins: [U], btn: '#2563EB' },
+      { name: 'Order status', pins: [], btn: '#16A34A' },
+      { name: 'Help', pins: [], btn: '#7C3AED' }
+    ];
+    return {
+      gridOn: !flow,
+      flowOn: flow,
+      gridBg: flow ? 'transparent' : '#C8FF3D',
+      gridInk: flow ? '#FAFAFA' : '#0B0B0F',
+      flowBg: flow ? '#C8FF3D' : 'transparent',
+      flowInk: flow ? '#0B0B0F' : '#FAFAFA',
+      setGrid: () => this.setState({ mode: 'grid' }),
+      setFlow: () => this.setState({ mode: 'flow' }),
+      tiles: base.map((t, i) => ({ ...t, n: i + 1, showNum: flow }))
+    };
+  }
+}
+</script>
+</body>
+</html>

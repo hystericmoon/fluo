@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Export album</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#09090B}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #C8FF3D;outline-offset:2px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#09090B;color:#FAFAFA;font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;padding:24px 20px;gap:16px;overflow:hidden">
+
+<header style="display:flex;align-items:center;gap:10px">
+<a href="Grid.dc.html" aria-label="Close export" style="width:44px;height:44px;box-sizing:border-box;border-radius:10px;border:1px solid #6B6B76;display:flex;align-items:center;justify-content:center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+</a>
+<div style="flex-grow:1;min-width:0">
+<h1 style="margin:0;font-size:17px;font-weight:600">Export album</h1>
+<div style="font-size:13px;color:#A1A1AA;margin-top:2px">Checkout flow review · 19 screens · 10 pins</div>
+</div>
+</header>
+
+<fieldset style="border:0;margin:0;padding:0;min-width:0">
+<legend style="padding:0;margin:0 0 8px;font-size:13px;font-weight:500;color:#A1A1AA">Format</legend>
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{formats}}" as="f" hint-placeholder-count="4">
+<label style="display:flex;align-items:flex-start;gap:12px;padding:14px;box-sizing:border-box;border-radius:14px;border:1px solid {{f.border}};background:{{f.bg}}">
+<input type="radio" name="format" checked="{{f.checked}}" onChange="{{f.pick}}" style="width:20px;height:20px;margin:1px 0 0;accent-color:#C8FF3D;flex-shrink:0">
+<span style="flex-grow:1;min-width:0">
+<span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<span style="font-size:16px;font-weight:500">{{f.title}}</span>
+<sc-if value="{{f.best}}" hint-placeholder-val="{{false}}">
+<span style="font-size:12px;font-weight:500;color:#D8FF85;background:#1B2508;border:1px solid #C8FF3D;border-radius:6px;padding:2px 8px">Best for Claude</span>
+</sc-if>
+</span>
+<span style="display:block;font-size:13px;color:#A1A1AA;margin-top:3px;line-height:1.4">{{f.desc}}</span>
+</span>
+</label>
+</sc-for>
+</div>
+</fieldset>
+
+<div style="border:1px solid #2E2E33;border-radius:14px;background:#18181B">
+<label style="display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;box-sizing:border-box">
+<span style="flex-grow:1;min-width:0">
+<span style="display:block;font-size:15px;font-weight:500">Include original screenshots</span>
+<span style="display:block;font-size:13px;color:#A1A1AA;margin-top:2px;line-height:1.4">Off by default. Edits are baked into the exported images.</span>
+</span>
+<input type="checkbox" role="switch" checked="{{orig}}" onChange="{{toggleOrig}}" style="width:24px;height:24px;margin:0;accent-color:#C8FF3D;flex-shrink:0">
+</label>
+<label style="display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;box-sizing:border-box;border-top:1px solid #2E2E33">
+<span style="flex-grow:1;min-width:0">
+<span style="display:block;font-size:15px;font-weight:500">Add a review brief</span>
+<span style="display:block;font-size:13px;color:#A1A1AA;margin-top:2px;line-height:1.4">A short summary of what to look at, at the start.</span>
+</span>
+<input type="checkbox" role="switch" checked="{{brief}}" onChange="{{toggleBrief}}" style="width:24px;height:24px;margin:0;accent-color:#C8FF3D;flex-shrink:0">
+</label>
+</div>
+
+<div role="status" style="display:flex;gap:12px;align-items:flex-start;padding:14px;box-sizing:border-box;border-radius:14px;border:1px solid {{noticeBorder}};background:{{noticeBg}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{noticeTitleInk}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4 9.5 6a14 14 0 0 1-2.4 3.3M6.6 6.7C4.4 8.2 3 10.4 2.5 12c1 2 4.5 6 9.5 6 1.5 0 2.8-.4 4-1"/></svg>
+<span style="flex-grow:1;min-width:0">
+<span style="display:block;font-size:14px;font-weight:600;color:{{noticeTitleInk}}">{{noticeTitle}}</span>
+<span style="display:block;font-size:13px;color:{{noticeBodyInk}};margin-top:3px;line-height:1.4">{{noticeBody}}</span>
+</span>
+</div>
+
+<button type="button" style="height:52px;border-radius:12px;border:0;background:#C8FF3D;color:#0B0B0F;font-family:'Inter',system-ui,sans-serif;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+{{actionLabel}}
+</button>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const fmt = s.fmt || 'claude';
+    const orig = !!s.orig;
+    const brief = s.brief === undefined ? true : !!s.brief;
+    const defs = [
+      { id: 'claude', title: 'Claude pack', best: true, desc: 'Markdown and images in a ZIP: captions, pins and a review brief as text', action: 'Export Claude pack' },
+      { id: 'pdf', title: 'PDF', best: false, desc: 'One page per screen, with caption and pins', action: 'Export PDF' },
+      { id: 'long', title: 'Long image', best: false, desc: 'One scrolling image for quick sharing in chat', action: 'Export long image' },
+      { id: 'share', title: 'Share images', best: false, desc: 'Send annotated images with captions through the share sheet', action: 'Share images' }
+    ];
+    const cur = defs.find((d) => d.id === fmt) || defs[0];
+    return {
+      formats: defs.map((d) => ({
+        ...d,
+        checked: d.id === fmt,
+        border: d.id === fmt ? '#C8FF3D' : '#2E2E33',
+        bg: d.id === fmt ? '#1B2508' : '#18181B',
+        pick: () => this.setState({ fmt: d.id })
+      })),
+      orig,
+      brief,
+      toggleOrig: () => this.setState({ orig: !orig }),
+      toggleBrief: () => this.setState({ brief: !brief }),
+      actionLabel: cur.action,
+      noticeBg: orig ? '#2A1416' : '#2A2110',
+      noticeBorder: orig ? '#F87171' : '#7A5C10',
+      noticeTitleInk: orig ? '#FCA5A5' : '#FDE68A',
+      noticeBodyInk: orig ? '#E8C3C3' : '#E3D49A',
+      noticeTitle: orig ? 'Originals still contain what you hid' : '2 redactions are baked in',
+      noticeBody: orig
+        ? 'Annotated images are safe, but the original screenshots show the hidden content. Share only with people who can see it.'
+        : 'Exported images show them as solid blocks. The hidden content is not included.'
+    };
+  }
+}
+</script>
+</body>
+</html>
