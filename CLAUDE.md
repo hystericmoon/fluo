@@ -16,7 +16,15 @@ Superfast phone screenshot review app. Take a screenshot, then crop, annotate, c
 - Default theme is neon lime `#C8FF3D` on dark; Settings offers other colours. The logo stays lime in every theme.
 
 ## Commands
-Filled in during session 1 (Flutter run, test, analyze, build apk).
+Flutter 3.47 stable, `shadcn_flutter` 0.0.55. Android SDK 36 (set `ANDROID_HOME`).
+- Get packages: `flutter pub get`
+- Run: `flutter run` (device or emulator)
+- Analyze: `flutter analyze`
+- Test: `flutter test`
+- Debug APK: `flutter build apk --debug` -> `build/app/outputs/flutter-apk/app-debug.apk`
+- Regenerate launcher icons: `python3 -I tool/make_icons.py` (needs Pillow)
+
+Notes: Lexend and Inter are bundled variable fonts in `assets/fonts/` (weight via `FontVariation('wght', n)`), so the app needs no network. Tokens live in `lib/theme/tokens.dart` and mirror `refs/mocks`.
 
 ## Pointers
 - `docs/spec.md` scope and non-goals
