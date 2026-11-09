@@ -124,7 +124,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                             shot: shot,
                             number: flow ? n : null,
                             pins: pins[shot.id] ?? const [],
-                            onTap: () => _push(const EditorScreen()),
+                            onTap: () => _push(EditorScreen(shotId: shot.id)),
                           );
                         },
                       ),

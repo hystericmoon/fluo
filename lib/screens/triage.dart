@@ -2,6 +2,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../capture/capture_scope.dart';
 import '../data/models.dart';
+import '../data/repository.dart';
 import '../data/repo_scope.dart';
 import '../data/triage_session.dart';
 import '../theme/tokens.dart';
@@ -22,11 +23,13 @@ class TriageScreen extends StatefulWidget {
 
 class _TriageScreenState extends State<TriageScreen> {
   TriageSession? _t;
+  FluoRepo? _repo;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final repo = RepoScope.of(context);
+    _repo = repo;
     CaptureScope.of(context); // rebuild when new screenshots are imported
     final t = _t;
     if (t == null) {
@@ -34,6 +37,15 @@ class _TriageScreenState extends State<TriageScreen> {
     } else {
       t.absorbNew(); // shots taken while this screen is open join the end
     }
+  }
+
+  @override
+  void dispose() {
+    // Leaving Triage settles it: what was discarded is deleted from the app,
+    // so rejected screenshots do not pile up on the phone. (Undo reaches back
+    // only within one visit.)
+    _repo?.purgeDiscarded(albumId: widget.albumId);
+    super.dispose();
   }
 
   void _do(void Function(TriageSession t) action) => setState(() => action(_t!));

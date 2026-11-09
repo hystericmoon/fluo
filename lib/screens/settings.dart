@@ -58,6 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           Semantics(
             container: true,
+            explicitChildNodes: true, // controls inside stay separately focusable
             label: 'Color theme',
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text('Color theme', style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),

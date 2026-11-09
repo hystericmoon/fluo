@@ -172,6 +172,7 @@ class _SessionCard extends StatelessWidget {
 
     return Semantics(
       container: true,
+      explicitChildNodes: true, // controls inside stay separately focusable
       label: 'Active session',
       child: Container(
         padding: const EdgeInsets.all(16),

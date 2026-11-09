@@ -1,12 +1,12 @@
 Last updated 2026-11-09
 
 ## Next up
-Session 6: Editor. Crop, pen, arrow, box, pins with severity, redact, captions, all stored as vector data through `FluoRepo` (`setCrop`, `addPin`, `addAnnotation`, `loadEdit` already exist). Tapping a tile in an album currently opens the static Editor with fake content; replace it with the real shot.
+Session 7: Exporters. Claude pack (Markdown plus images ZIP), PDF, long stitched image, share. Use `paintEdit` from `lib/edit/render.dart` to render each screen (crop, marks, pins, redactions) with `EditViewport(box: Size(regionPxW, regionPxH), ...)`. Done when redacted areas are solid in every export and originals are excluded by default.
 
-Still owed from sessions 1 to 5: run on a physical Android device. Capture (session 4) and the Triage flick gesture have only been checked in tests. On a phone: take 10 screenshots during a session, flick through them, name a few, undo once, and open the album.
+Still owed from sessions 1 to 6: run on a physical Android device. Nothing has run on hardware. The Editor in particular needs real fingers: drawing, dragging pins, the crop frame.
 
 ## Open items
-- Session 5: Albums, Triage and Album are real. Editor (session 6), Export (session 7) and Settings (session 9) still show fixed content. Export says "19 screens, 10 pins" and "2 redactions" whatever the album holds.
+- Session 5: Albums, Triage, Album and Editor are real. Export (session 7) and Settings (session 9) still show fixed content. Export says "19 screens, 10 pins" and "2 redactions" whatever the album holds.
 - Session 3: `Shot.width` and `height` are optional because reading them needs an image decode; the capture plugin should supply them.
 - Session 3: deleting a pin renumbers the rest, so pin numbers in an exported Claude pack can change between exports. Fine for now; revisit if pins need stable IDs in exports.
 - Session 3: no migration beyond v1 exists, so the first real migration is untested. Test it when one is added.
@@ -17,11 +17,16 @@ Still owed from sessions 1 to 5: run on a physical Android device. Capture (sess
 - Session 4: the watcher does not restart after a reboot. The session survives in the database and sync resumes watching the next time the app opens.
 - Session 4 (release, session 10): the service uses the `specialUse` foreground type. Google Play needs a declaration and a justification for it in the Play Console. The manifest property text is a draft. Also the debug build has the INTERNET permission (Flutter hot reload); confirm the release build has none, to back the local-only claim.
 - Session 5: Flow order is capture order. There is no way to reorder screens yet (mocks do not show one). When it is built it needs buttons as well as drag (WCAG 2.5.7), see the item below.
-- Session 5: tapping a tile opens the static Editor, not the tapped screen, until session 6.
-- Session 5: Done in Triage leaves unsorted shots pending (they stay in "Review N new"). Discarded shots are kept in the database and their files stay on disk; there is no "Discarded" view and no purge yet. Decide whether discards should delete the file.
+- Session 5: Done in Triage leaves unsorted shots pending (they stay in "Review N new").
+- Session 6: DECIDED (user was away): discarded screenshots are deleted, rows and files, when Triage is left and on app start. Change `purgeDiscarded` calls if you want a trash instead.
 - Session 5: filter chips count screens that have at least one pin of that severity, not pins. The mock does not say which.
 - Session 5: on the album screen the filter chips wrap to a second line on narrow phones instead of scrolling, because a half-visible chip is easy to miss.
 - Session 5: the Triage card shows the whole screenshot (letterboxed), not a crop, so nothing is hidden while reviewing.
+- Session 6: not built, on purpose: blur (only solid redaction), a choice of mark colours (all marks are red), stroke width options, text labels, undo for moves and deletions (undo removes the last added mark only).
+- Session 6: accessibility. Pins can be placed, selected, edited, nudged and deleted without touch; every mark can be selected and deleted from the marks list; the crop frame has eight trim actions for screen readers. Drawing a pen stroke, arrow, box or redaction and dragging crop corners still need touch. Revisit in session 8 (TalkBack pass); an idea is preset rectangles ("top third", "whole width") that create boxes and redactions from buttons.
+- Session 6: the crop is only applied on export; the canvas shows the cropped view when the crop tool is closed.
+- Session 6: large screenshots are decoded at 1600px wide in the Editor. Exports (session 7) should decode at full size.
+- Session 6: tests found that `SingleChildScrollView` steals vertical drags from a stock `GestureDetector`/pan; `QuickPanGestureRecognizer` (8px) fixes it. Keep using it for any new drag surface inside a scrolling page. The same tests found a Semantics container that swallowed its buttons: containers that hold controls need `explicitChildNodes: true`.
 - Session 2: screens use fake data from `lib/data/fake_data.dart`; buttons that need real logic are inert (Keep, Discard, Undo, Pause, New album, Export, Check for updates). Each is owned by a later session.
 - Session 2: the accent colour is fixed lime in `lib/ui/kit.dart`. Settings only recolours its own preview. Session 9 must route the accent through the theme.
 - Session 2: pin badges are lettered circles as in the mocks. Severity chips and dots use shape too. Decide in session 6 whether badges on the canvas also need a shape per severity (CLAUDE.md: letter, shape and colour).
@@ -40,3 +45,4 @@ Still owed from sessions 1 to 5: run on a physical Android device. Capture (sess
 - 2026-11-09: Session 3 data layer. Album, Shot, Pin, Annotation models, SQLite schema v1, write-once file store, FluoRepo, wired into the Albums list and New album. 36 tests, including write, close, reopen and compare; original bytes verified unchanged by edits. The debug APK bundles libsqlite3 for arm64, armv7 and x86_64.
 - 2026-11-09: Session 4 capture. Schema v2 (sessions, the first real migration, tested on an upgraded v1 database). Kotlin watcher service, channel and inbox; Dart CaptureController and session card with permission states. 67 Flutter tests and 11 Kotlin tests. Debug APK builds; merged manifest checked.
 - 2026-11-09: Session 5 triage and album. Triage (Keep, Discard, Undo, names, flick with button and TalkBack alternatives) and the Album screen (Grid, Flow order, severity filters, real thumbnails) read and write the database. 100 tests, including a 10-shot session sorted into an album. Fixed a false "Needs photo access" flash on the session card.
+- 2026-11-09: Session 6 editor. Crop, pen, arrow, box, pins with severity (shape, letter, colour), redact and captions, stored as vector data. One shared renderer; redaction proven opaque by pixel tests. Discarded screenshots now deleted. About 179 tests. Fixed: vertical strokes scrolling the page, drags starting 18px late, merged semantics containers, zero-length pen strokes.

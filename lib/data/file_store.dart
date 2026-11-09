@@ -27,6 +27,13 @@ class FileStore {
 
   String resolve(String relative) => p.join(root.path, relative);
 
+  /// For small batches where finishing before returning matters more than
+  /// keeping the UI thread free (a handful of screenshots).
+  void deleteSync(String relative) {
+    final f = File(resolve(relative));
+    if (f.existsSync()) f.deleteSync();
+  }
+
   Future<void> delete(String relative) async {
     final f = File(resolve(relative));
     if (await f.exists()) await f.delete();

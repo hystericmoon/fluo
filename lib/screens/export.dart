@@ -50,6 +50,7 @@ class _ExportScreenState extends State<ExportScreen> {
               const SizedBox(height: 16),
               Semantics(
                 container: true,
+                explicitChildNodes: true, // controls inside stay separately focusable
                 label: 'Format',
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   Text('Format', style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),

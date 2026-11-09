@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fluo/capture/capture_source.dart';
+import 'package:fluo/data/models.dart';
 import 'package:fluo/main.dart';
 import 'package:fluo/screens/albums.dart';
-import 'package:fluo/screens/editor.dart';
 import 'package:fluo/screens/export.dart';
 import 'package:fluo/screens/settings.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
@@ -22,6 +22,20 @@ void main() {
     expect(find.text('Albums'), findsOneWidget);
     expect(find.text('No albums yet'), findsOneWidget);
     expect(find.text('Review 7 new'), findsNothing);
+  });
+
+  testWidgets('starting the app clears discarded screenshots left over from a cut-short visit', (tester) async {
+    setPhone(tester);
+    final repo = memRepo();
+    final a = repo.createAlbum('A');
+    final s = await seedShots(tester, repo, a.id, 2);
+    repo.setStatus(s[0].id, ShotStatus.discarded);
+    await tester.pumpWidget(FluoApp(repo: repo, source: FakeSource()));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    expect(repo.getShot(s[0].id), isNull);
+    expect(File(s[0].originalPath).existsSync(), isFalse);
+    expect(repo.getShot(s[1].id), isNotNull);
+    await tester.pump(const Duration(milliseconds: 1300));
   });
 
   testWidgets('Albums lists real albums with screen counts and dates', (tester) async {
@@ -225,9 +239,8 @@ void main() {
 
   group('every tap target is at least 44dp', () {
     final screens = <String, Widget>{
-      // Triage and Album need real shots: see triage_album_test.dart.
+      // Triage, Album and Editor need real shots: see their own test files.
       'Albums': const AlbumsScreen(),
-      'Editor': const EditorScreen(),
       'Export': const ExportScreen(),
       'Settings': const SettingsScreen(),
     };

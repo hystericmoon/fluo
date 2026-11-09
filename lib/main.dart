@@ -45,6 +45,7 @@ class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
     Future<void>.delayed(widget.splash, () {
       if (mounted) setState(() => _showSplash = false);
     });
+    widget.repo.purgeDiscarded(); // leftovers from a visit that was cut short
     _capture.sync(); // picks a stored session back up and imports waiting shots
   }
 

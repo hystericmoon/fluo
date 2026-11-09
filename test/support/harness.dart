@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -93,4 +94,35 @@ Future<List<Shot>> seedShots(WidgetTester tester, FluoRepo repo, String albumId,
     }
     return out;
   }))!;
+}
+
+/// A real, decodable PNG: a light background with a dark header bar.
+Future<List<int>> pngBytes(int w, int h) async {
+  final rec = ui.PictureRecorder();
+  final c = Canvas(rec);
+  c.drawRect(Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()), Paint()..color = const Color(0xFFF4F4F5));
+  c.drawRect(Rect.fromLTWH(0, 0, w.toDouble(), h * 0.08), Paint()..color = const Color(0xFF27272A));
+  final img = await rec.endRecording().toImage(w, h);
+  final data = await img.toByteData(format: ui.ImageByteFormat.png);
+  return data!.buffer.asUint8List();
+}
+
+/// Like [seedShots] but with real images, and already kept.
+Future<List<Shot>> seedKeptPngShots(WidgetTester tester, FluoRepo repo, String albumId, int n,
+    {int w = 200, int h = 400}) async {
+  final dir = Directory.systemTemp.createTempSync('fluo_png_');
+  addTearDown(() => dir.deleteSync(recursive: true));
+  final out = (await tester.runAsync(() async {
+    final shots = <Shot>[];
+    final bytes = await pngBytes(w, h);
+    for (var i = 0; i < n; i++) {
+      final f = File('${dir.path}/s$i.png')..writeAsBytesSync(bytes);
+      shots.add(await repo.addShot(albumId, f, width: w, height: h));
+    }
+    return shots;
+  }))!;
+  for (final s in out) {
+    repo.setStatus(s.id, ShotStatus.kept);
+  }
+  return out;
 }

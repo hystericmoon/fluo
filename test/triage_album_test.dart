@@ -1,4 +1,6 @@
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fluo/data/models.dart';
 import 'package:fluo/screens/album.dart';
@@ -171,6 +173,26 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('All sorted'), findsNothing);
       expect(find.text('A · 2 of 2'), findsOneWidget);
+    });
+
+    testWidgets('leaving Triage deletes what was discarded, files included', (tester) async {
+      setPhone(tester);
+      final repo = memRepo();
+      final a = repo.createAlbum('A');
+      final s = await seedShots(tester, repo, a.id, 3);
+      await tester.pumpWidget(host(TriageScreen(albumId: a.id), repo: repo));
+      await tester.tap(find.text('Keep'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+      expect(repo.getShot(s[1].id), isNotNull, reason: 'still there while Triage is open, so Undo works');
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      expect(repo.getShot(s[1].id), isNull);
+      expect(File(s[1].originalPath).existsSync(), isFalse);
+      expect(repo.getShot(s[0].id)!.status, ShotStatus.kept);
+      expect(repo.getShot(s[2].id)!.status, ShotStatus.pending);
     });
 
     testWidgets('an album with nothing pending says so', (tester) async {

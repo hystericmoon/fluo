@@ -234,6 +234,35 @@ class FluoRepo {
     });
   }
 
+  /// Deletes discarded screenshots, their rows and their files. One album, or
+  /// all of them. Everything is done before this returns (the files are
+  /// removed synchronously: there are only a few). Returns how many.
+  Future<int> purgeDiscarded({String? albumId}) {
+    final rows = albumId == null
+        ? _db.select("SELECT id, album_id, original_path FROM shots WHERE status = 'discarded'")
+        : _db.select("SELECT id, album_id, original_path FROM shots WHERE status = 'discarded' AND album_id = ?", [albumId]);
+    if (rows.isEmpty) return Future.value(0);
+    final files = [for (final r in rows) r['original_path'] as String];
+    final albums = {for (final r in rows) r['album_id'] as String};
+    _tx(() {
+      for (final r in rows) {
+        _db.execute('DELETE FROM shots WHERE id = ?', [r['id']]);
+      }
+      for (final a in albums) {
+        final ids = [
+          for (final r in _db.select('SELECT id FROM shots WHERE album_id = ? ORDER BY position', [a])) r['id'] as String
+        ];
+        for (var i = 0; i < ids.length; i++) {
+          _db.execute('UPDATE shots SET position = ? WHERE id = ?', [i, ids[i]]);
+        }
+      }
+    });
+    for (final f in files) {
+      _files.deleteSync(f);
+    }
+    return Future.value(files.length);
+  }
+
   Future<void> deleteShot(String shotId) async {
     final s = getShot(shotId);
     if (s == null) return;

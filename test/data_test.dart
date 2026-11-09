@@ -275,6 +275,42 @@ void main() {
     });
   });
 
+  group('purgeDiscarded', () {
+    test('removes discarded shots, their pins and files, and closes the gaps; keeps the rest', () async {
+      final a = repo.createAlbum('A');
+      final s = [for (var i = 0; i < 5; i++) await repo.addShot(a.id, shot('p$i.png', [i]))];
+      repo.setStatus(s[0].id, ShotStatus.kept);
+      repo.setStatus(s[1].id, ShotStatus.discarded);
+      repo.setStatus(s[2].id, ShotStatus.kept);
+      repo.setStatus(s[3].id, ShotStatus.discarded);
+      // s[4] stays pending
+      repo.addPin(s[1].id, Severity.bug, .1, .1);
+
+      expect(await repo.purgeDiscarded(), 2);
+      expect(File(s[1].originalPath).existsSync(), isFalse);
+      expect(File(s[3].originalPath).existsSync(), isFalse);
+      expect(repo.getShot(s[1].id), isNull);
+      expect(repo.pinsFor(s[1].id), isEmpty);
+      expect(File(s[0].originalPath).existsSync(), isTrue);
+      expect(File(s[4].originalPath).existsSync(), isTrue, reason: 'pending is not discarded');
+      expect(repo.shotsIn(a.id).map((x) => (x.id, x.position)), [(s[0].id, 0), (s[2].id, 1), (s[4].id, 2)]);
+    });
+
+    test('one album only when asked, and nothing to do is fine', () async {
+      final a = repo.createAlbum('A');
+      final b = repo.createAlbum('B');
+      final sa = await repo.addShot(a.id, shot('a.png', [1]));
+      final sb = await repo.addShot(b.id, shot('b.png', [2]));
+      repo.setStatus(sa.id, ShotStatus.discarded);
+      repo.setStatus(sb.id, ShotStatus.discarded);
+      expect(await repo.purgeDiscarded(albumId: a.id), 1);
+      expect(repo.getShot(sa.id), isNull);
+      expect(repo.getShot(sb.id), isNotNull);
+      expect(await repo.purgeDiscarded(albumId: a.id), 0);
+      expect(await repo.purgeDiscarded(), 1);
+    });
+  });
+
   group('migration v1 to v2', () {
     test('upgrades a real v1 database in place and keeps every row', () async {
       repo.close();
