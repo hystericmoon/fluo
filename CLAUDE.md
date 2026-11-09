@@ -29,6 +29,7 @@ Flutter 3.47 stable, `shadcn_flutter` 0.0.55. Android SDK 36 (set `ANDROID_HOME`
 - Test: `flutter test`
 - Debug APK: `flutter build apk --debug` -> `build/app/outputs/flutter-apk/app-debug.apk`
 - Kotlin unit tests: `cd android && ./gradlew :app:testDebugUnitTest` (needs `ANDROID_HOME`)
+- Release: `flutter build appbundle --release` (signs with `android/key.properties` if present, else the debug key, which Play rejects). `docs/release.md` has the release checks.
 - Regenerate launcher icons: `python3 -I tool/make_icons.py` (needs Pillow)
 
 Notes: Lexend and Inter are bundled variable fonts in `assets/fonts/` (weight via `FontVariation('wght', n)`), so the app needs no network. Tokens live in `lib/theme/tokens.dart` and mirror `refs/mocks`.

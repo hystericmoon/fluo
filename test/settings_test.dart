@@ -170,6 +170,19 @@ void main() {
       expect(find.text('Neon lime is the default theme. The FLUO logo stays lime.'), findsOneWidget);
     });
 
+    testWidgets('privacy statement is shown and the bundled font licences open offline', (tester) async {
+      await open(tester);
+      expect(find.textContaining('Nothing leaves the phone except what you choose to share'), findsOneWidget);
+      expect(find.textContaining('SIL Open Font License'), findsWidgets);
+      await tester.ensureVisible(find.text('Show font licences'));
+      await tester.pump();
+      await tester.tap(find.text('Show font licences'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('The Lexend Project Authors'), findsOneWidget);
+      expect(find.textContaining('The Inter Project Authors'), findsOneWidget);
+      expect(find.text('Hide font licences'), findsOneWidget);
+    });
+
     testWidgets('the Reduce motion switch turns motion off app-wide and is saved', (tester) async {
       final st = await open(tester, reduce: false); // the test harness reduces motion unless told not to
       expect(reducedMotionOf(tester), isFalse);

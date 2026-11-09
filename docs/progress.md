@@ -1,17 +1,11 @@
 Last updated 2026-11-09
 
 ## Next up
-Session 10: Release checks (see docs/plan.md). Write each item down as cleared or changed in a new `docs/release.md`:
-- Fluo trademark, domain and store-name availability (cannot be cleared from here: needs a person; a DNS lookup can say if a domain resolves).
-- React Bits licence (fetch the real licence text from its GitHub repo; nothing was copied, the motion kit is original code).
-- Signing: release signing config reading `key.properties` (never commit a key), `flutter build appbundle`.
-- Store listing draft (title, short and long description, screenshots list, data safety answers: no data collected, no accounts, local only).
-- Google Play declaration for the `specialUse` foreground service (justification text is drafted in the manifest).
-- Confirm the release build has NO `INTERNET` permission (debug has it for hot reload). `flutter build apk --release` then `aapt2 dump badging`.
-- Font (OFL) licences for Lexend and Inter: add the licence files and an in-app or doc credit.
-- Privacy: say plainly that nothing leaves the phone except what the person shares.
-
-Still owed from every session: run on a physical Android device and do the manual TalkBack script in docs/accessibility.md. Nothing has run on hardware.
+Session 10 is written up in `docs/release.md`. What is left needs a person:
+- **Blocker: the application ID `app.fluo.fluo` is already taken on Google Play** (a different app also called "Fluo", by Qodar). Pick a new `applicationId` before any upload, and settle the name and trademark.
+- Create the upload keystore and `android/key.properties`, then `flutter build appbundle --release`.
+- Play Console: listing, data safety, `specialUse` declaration (texts are drafted in `docs/release.md`), privacy policy URL, demo video, listing screenshots.
+- Run on a physical Android device and do the manual TalkBack script in `docs/accessibility.md`. Nothing has run on hardware.
 
 ## Open items
 - Session 7: Albums, Triage, Album, Editor and Export are real. Only Settings (session 9) still shows fixed content.
@@ -57,8 +51,7 @@ Still owed from every session: run on a physical Android device and do the manua
 - Session 2: `refs/mocks/*.dc.html` load `./support.js`, which is not in the repo, so the mocks cannot be opened as pages. Screens were built from their markup.
 - Session 2: no stub for the version string yet. Settings shows a fixed `Version 0.1.0`.
 - Session 1: Settings button border uses `borderStrong` (#6B6B76). Re-check the other shadcn outline controls against the 3:1 floor in session 2.
-- Check Fluo trademark, domain and store names (session 10).
-- Check the React Bits license before porting anything (session 10).
+- Session 10: React Bits licence is MIT + Commons Clause; nothing is ported (see docs/release.md). Trademark and store names need a person.
 - Auto-update mechanism not decided.
 
 ## History
@@ -72,3 +65,4 @@ Still owed from every session: run on a physical Android device and do the manua
 - 2026-11-09: Session 7 exporters. Claude pack ZIP, PDF, long image and share images, built from one baked render. Redactions proven solid in every format by pixel tests; originals excluded by default and never in PDF or long image. Export screen is real: counts, notices, progress, errors. 225 tests.
 - 2026-11-09: Session 8 motion and access. Motion kit (Hold Button, Swipe Row, Undo Fuse, live border, crop frame entry, card entrance) with reduced motion; delete album with undo; button reordering; buttons for adding and moving boxes, arrows and redactions; contrast, label, 44dp, large-text and keyboard audits; docs/accessibility.md.
 - 2026-11-09: Session 9 settings and updates. Settings table (migration v3, tested on an upgraded v2 database), five accent themes applied app-wide via `context.accent`, Reduce motion switch, update controller with Wi-Fi only and a 12-hour gap, real version display. 445 tests, Kotlin tests and debug APK pass.
+- 2026-11-09: Session 10 release checks. `docs/release.md`: release signing from `key.properties`, app bundle builds, release APK has no INTERNET permission, font licences bundled with a credit and privacy text in Settings, store listing and `specialUse` declaration drafted. Found that the application ID is already taken on Play.

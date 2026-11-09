@@ -61,6 +61,8 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: false
+  assets:
+    - assets/licenses/
   fonts:
     # Variable fonts (OFL). Weight is set with FontVariation('wght', n).
     - family: Lexend

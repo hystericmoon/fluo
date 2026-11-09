@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../settings/app_settings.dart';
@@ -35,6 +36,12 @@ class SettingsScreen extends StatelessWidget {
             radius: 16,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: _Updates(settings: settings, updates: updates),
+          ),
+          const SizedBox(height: 16),
+          const FluoCard(
+            radius: 16,
+            padding: EdgeInsets.all(16),
+            child: _About(),
           ),
         ]),
       ),
@@ -213,6 +220,61 @@ class _Updates extends StatelessWidget {
           ]),
         ),
       ),
+    ]);
+  }
+}
+
+/// Privacy statement and font credits. Licence texts are bundled in
+/// `assets/licenses/` so they can be read offline.
+class _About extends StatefulWidget {
+  const _About();
+
+  static const privacy =
+      'Fluo keeps everything on this phone. There are no accounts and no cloud. '
+      'Nothing leaves the phone except what you choose to share from the export screen.';
+
+  @override
+  State<_About> createState() => _AboutState();
+}
+
+class _AboutState extends State<_About> {
+  Future<String>? _licences;
+  bool _open = false;
+
+  Future<String> _load() async {
+    final lexend = await rootBundle.loadString('assets/licenses/Lexend-OFL.txt');
+    final inter = await rootBundle.loadString('assets/licenses/Inter-OFL.txt');
+    return 'LEXEND\n\n$lexend\n\n\nINTER\n\n$inter';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Semantics(header: true, child: Text('Privacy and credits', style: fs(15, w: FontWeight.w600))),
+      const SizedBox(height: 8),
+      Text(_About.privacy, style: fs(13, c: FluoColors.fgMuted, h: 1.4)),
+      const SizedBox(height: 8),
+      Text('Fonts: Lexend and Inter, used under the SIL Open Font License 1.1.',
+          style: fs(13, c: FluoColors.fgMuted, h: 1.4)),
+      const SizedBox(height: 12),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: FluoButton(
+          label: _open ? 'Hide font licences' : 'Show font licences',
+          onPressed: () => setState(() {
+            _open = !_open;
+            if (_open) _licences ??= _load();
+          }),
+        ),
+      ),
+      if (_open)
+        FutureBuilder<String>(
+          future: _licences,
+          builder: (context, snap) => Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(snap.data ?? 'Loading…', style: fs(12, c: FluoColors.fgMuted, h: 1.4)),
+          ),
+        ),
     ]);
   }
 }
