@@ -1,7 +1,8 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import '../capture/capture_controller.dart';
+import '../capture/capture_scope.dart';
 import '../data/format.dart';
-import '../data/models.dart';
 import '../data/repo_scope.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
@@ -10,8 +11,7 @@ import 'album.dart';
 import 'settings.dart';
 import 'triage.dart';
 
-/// Albums list, read from the local database. The session card shows when
-/// some album has screenshots waiting for review.
+/// Albums list, read from the local database, with the session card.
 class AlbumsScreen extends StatefulWidget {
   const AlbumsScreen({super.key, this.now});
 
@@ -23,32 +23,31 @@ class AlbumsScreen extends StatefulWidget {
 }
 
 class _AlbumsScreenState extends State<AlbumsScreen> {
-  List<AlbumSummary>? _albums;
-
-  void _load() => setState(() => _albums = RepoScope.of(context).listAlbums());
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _albums ??= RepoScope.of(context).listAlbums();
-  }
-
   Future<void> _push(Widget page) async {
     await Navigator.of(context).push(fluoRoute(page));
-    if (mounted) _load(); // pick up changes made on the screens we visited
+    if (mounted) {
+      setState(() {}); // pick up changes made on the screens we visited
+    }
   }
 
   Future<void> _newAlbum() async {
     final name = await askAlbumName(context);
     if (name == null || !mounted) return;
-    RepoScope.of(context).createAlbum(name);
-    _load();
+    final album = RepoScope.of(context).createAlbum(name);
+    // A new album starts a session: screenshots taken now land in it.
+    await CaptureScope.of(context).begin(album.id);
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final albums = _albums ?? const <AlbumSummary>[];
-    final waiting = albums.where((a) => a.pendingCount > 0).firstOrNull;
+    final repo = RepoScope.of(context);
+    final capture = CaptureScope.of(context); // rebuilds on status and imports
+    final albums = repo.listAlbums();
+    final session = repo.activeSession();
+    final sessionAlbum = session == null
+        ? null
+        : albums.where((a) => a.album.id == session.albumId).firstOrNull;
     final now = widget.now ?? DateTime.now();
     return ScreenFrame(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
@@ -79,18 +78,28 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 24),
                     children: [
-                      if (waiting != null) ...[
+                      if (sessionAlbum != null) ...[
                         _SessionCard(
-                          albumName: waiting.album.name,
-                          newCount: waiting.pendingCount,
+                          albumName: sessionAlbum.album.name,
+                          newCount: sessionAlbum.pendingCount,
+                          status: capture.status,
                           onReview: () => _push(const TriageScreen()),
+                          onPause: capture.pause,
+                          onResume: capture.resume,
+                          onFixAccess: capture.fixAccess,
                         ),
                         const SizedBox(height: 20),
                       ],
                       Semantics(
                         header: true,
-                        child: Text('All albums',
-                            style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
+                        child: Text(
+                          'All albums',
+                          style: fs(
+                            13,
+                            w: FontWeight.w500,
+                            c: FluoColors.fgMuted,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 10),
                       for (final a in albums) ...[
@@ -112,86 +121,183 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.albumName, required this.newCount, required this.onReview});
+  const _SessionCard({
+    required this.albumName,
+    required this.newCount,
+    required this.status,
+    required this.onReview,
+    required this.onPause,
+    required this.onResume,
+    required this.onFixAccess,
+  });
   final String albumName;
   final int newCount;
+  final CaptureStatus status;
   final VoidCallback onReview;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onFixAccess;
+
+  bool get _problem =>
+      status == CaptureStatus.needsPermission ||
+      status == CaptureStatus.needsSettings ||
+      status == CaptureStatus.limitedAccess;
 
   @override
   Widget build(BuildContext context) {
+    final on = status == CaptureStatus.watching;
+    final (dot, label) = switch (status) {
+      CaptureStatus.watching => (FluoColors.lime, 'Session on'),
+      CaptureStatus.paused => (FluoColors.fgMuted, 'Session paused'),
+      CaptureStatus.unsupported => (FluoColors.fgMuted, 'Not available'),
+      _ => (FluoColors.ux, 'Needs photo access'),
+    };
+    final detail = switch (status) {
+      CaptureStatus.watching ||
+      CaptureStatus.off => 'New screenshots land here automatically',
+      CaptureStatus.paused => 'Screenshots are not being picked up',
+      CaptureStatus.needsPermission => 'Allow photo access so Fluo can see new screenshots. Your photos stay on this phone.',
+      CaptureStatus.needsSettings => 'Photo access is off. Turn it on in Settings so Fluo can see new screenshots.',
+      CaptureStatus.limitedAccess => 'Fluo can only see the photos you picked, so it would miss new screenshots. Allow all photos in Settings.',
+      CaptureStatus.unsupported =>
+        'Screenshot detection is not available on this device yet',
+    };
+    final fixLabel = status == CaptureStatus.needsPermission
+        ? 'Allow photo access'
+        : 'Open Settings';
+
     return Semantics(
       container: true,
       label: 'Active session',
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: FluoColors.limeTint,
+          color: on ? FluoColors.limeTint : FluoColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: FluoColors.lime),
+          border: Border.all(
+            color: on ? FluoColors.lime : FluoColors.borderStrong,
+          ),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: FluoColors.lime, shape: BoxShape.circle)),
-            const SizedBox(width: 8),
-            Text('Session on', style: fs(13, w: FontWeight.w500, c: FluoColors.limeSoft)),
-          ]),
-          const SizedBox(height: 12),
-          Text(albumName, style: fs(17, w: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text('New screenshots land here automatically',
-              style: fs(14, c: FluoColors.fgMuted)),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-              child: FluoButton(
-                label: 'Review $newCount new',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: fs(
+                    13,
+                    w: FontWeight.w500,
+                    c: on ? FluoColors.limeSoft : FluoColors.fg,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(albumName, style: fs(17, w: FontWeight.w600)),
+            const SizedBox(height: 2),
+            Text(detail, style: fs(14, c: FluoColors.fgMuted, h: 1.4)),
+            const SizedBox(height: 12),
+            if (_problem)
+              FluoButton(
+                label: fixLabel,
                 kind: BtnKind.primary,
                 expand: true,
-                onPressed: onReview,
+                onPressed: onFixAccess,
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: FluoButton(
+                      label: newCount > 0
+                          ? 'Review $newCount new'
+                          : 'Nothing new yet',
+                      kind: newCount > 0 ? BtnKind.primary : BtnKind.outline,
+                      expand: true,
+                      onPressed: newCount > 0 ? onReview : null,
+                    ),
+                  ),
+                  if (status != CaptureStatus.unsupported) ...[
+                    const SizedBox(width: 8),
+                    status == CaptureStatus.paused
+                        ? FluoButton(
+                            label: 'Resume',
+                            hPad: 18,
+                            onPressed: onResume,
+                          )
+                        : FluoButton(
+                            label: 'Pause',
+                            hPad: 18,
+                            onPressed: onPause,
+                          ),
+                  ],
+                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            FluoButton(label: 'Pause', hPad: 18, onPressed: () {}),
-          ]),
-        ]),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _AlbumRow extends StatelessWidget {
-  const _AlbumRow({required this.name, required this.meta, required this.onTap});
+  const _AlbumRow({
+    required this.name,
+    required this.meta,
+    required this.onTap,
+  });
   final String name;
   final String meta;
   final VoidCallback onTap;
 
   Widget _thumb(bool lime) => Container(
-        width: 34,
-        height: 60,
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF202024),
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: FluoColors.border),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(height: 4, decoration: BoxDecoration(color: const Color(0xFF3F3F46), borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 3),
-          FractionallySizedBox(
-            widthFactor: 0.6,
-            child: Container(height: 4, decoration: BoxDecoration(color: const Color(0xFF3F3F46), borderRadius: BorderRadius.circular(2))),
+    width: 34,
+    height: 60,
+    padding: const EdgeInsets.all(5),
+    decoration: BoxDecoration(
+      color: const Color(0xFF202024),
+      borderRadius: BorderRadius.circular(5),
+      border: Border.all(color: FluoColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 4,
+          decoration: BoxDecoration(
+            color: const Color(0xFF3F3F46),
+            borderRadius: BorderRadius.circular(2),
           ),
-          const Spacer(),
-          Container(
-              height: 8,
-              decoration: BoxDecoration(
-                  color: lime ? FluoColors.lime : const Color(0xFF3F3F46),
-                  borderRadius: BorderRadius.circular(3))),
-        ]),
-      );
+        ),
+        const SizedBox(height: 3),
+        FractionallySizedBox(
+          widthFactor: 0.6,
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFF3F3F46),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        const Spacer(),
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: lime ? FluoColors.lime : const Color(0xFF3F3F46),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -206,25 +312,41 @@ class _AlbumRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: FluoColors.border),
         ),
-        child: Row(children: [
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            _thumb(true),
-            const SizedBox(width: 4),
-            _thumb(false),
-            const SizedBox(width: 4),
-            _thumb(false),
-          ]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(name,
-                  maxLines: 1, overflow: TextOverflow.ellipsis, style: fs(16, w: FontWeight.w500)),
-              const SizedBox(height: 3),
-              Text(meta, style: fs(13, c: FluoColors.fgMuted)),
-            ]),
-          ),
-          const Icon(LucideIcons.chevronRight, size: 20, color: FluoTints.chevron),
-        ]),
+        child: Row(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _thumb(true),
+                const SizedBox(width: 4),
+                _thumb(false),
+                const SizedBox(width: 4),
+                _thumb(false),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: fs(16, w: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(meta, style: fs(13, c: FluoColors.fgMuted)),
+                ],
+              ),
+            ),
+            const Icon(
+              LucideIcons.chevronRight,
+              size: 20,
+              color: FluoTints.chevron,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -236,17 +358,23 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(LucideIcons.images, size: 40, color: FluoColors.fgMuted),
-        const SizedBox(height: 16),
-        Text('No albums yet', style: fs(17, w: FontWeight.w600)),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: 260,
-          child: Text('Create an album, then take screenshots to start a review.',
-              textAlign: TextAlign.center, style: fs(14, c: FluoColors.fgMuted, h: 1.4)),
-        ),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(LucideIcons.images, size: 40, color: FluoColors.fgMuted),
+          const SizedBox(height: 16),
+          Text('No albums yet', style: fs(17, w: FontWeight.w600)),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 260,
+            child: Text(
+              'Create an album, then take screenshots to start a review.',
+              textAlign: TextAlign.center,
+              style: fs(14, c: FluoColors.fgMuted, h: 1.4),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

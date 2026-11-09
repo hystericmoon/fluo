@@ -8,13 +8,16 @@ class FluoDb {
   FluoDb._(this.db);
   final Database db;
 
-  static FluoDb open(String path) => FluoDb._(_prepare(sqlite3.open(path)));
+  /// [upTo] stops migrating early. Only for tests that need an old schema.
+  static FluoDb open(String path, {int? upTo}) =>
+      FluoDb._(_prepare(sqlite3.open(path), upTo ?? _migrations.length));
 
-  static FluoDb openInMemory() => FluoDb._(_prepare(sqlite3.openInMemory()));
+  static FluoDb openInMemory() =>
+      FluoDb._(_prepare(sqlite3.openInMemory(), _migrations.length));
 
   static int get schemaVersion => _migrations.length;
 
-  static Database _prepare(Database db) {
+  static Database _prepare(Database db, int target) {
     db.execute('PRAGMA foreign_keys = ON');
     db.execute('PRAGMA journal_mode = WAL');
     final current = db.select('PRAGMA user_version').first.values.first as int;
@@ -25,7 +28,7 @@ class FluoDb {
         '${_migrations.length}. Update Fluo.',
       );
     }
-    for (var v = current; v < _migrations.length; v++) {
+    for (var v = current; v < target; v++) {
       db.execute('BEGIN');
       try {
         db.execute(_migrations[v]);
@@ -33,6 +36,7 @@ class FluoDb {
         db.execute('COMMIT');
       } catch (_) {
         db.execute('ROLLBACK');
+        db.close(); // do not leak a connection when the app cannot start
         rethrow;
       }
     }
@@ -88,5 +92,17 @@ const _migrations = <String>[
     z       INTEGER NOT NULL
   );
   CREATE INDEX annotations_by_shot ON annotations(shot_id, z);
+  ''',
+  // 2: review sessions. At most one is active (ended_at IS NULL): new
+  // screenshots land in its album unless it is paused.
+  '''
+  CREATE TABLE sessions (
+    id         TEXT PRIMARY KEY,
+    album_id   TEXT NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
+    started_at INTEGER NOT NULL,
+    ended_at   INTEGER,
+    paused     INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1))
+  );
+  CREATE UNIQUE INDEX one_active_session ON sessions((1)) WHERE ended_at IS NULL;
   ''',
 ];

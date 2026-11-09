@@ -54,6 +54,21 @@ class Album {
   final DateTime updatedAt;
 }
 
+/// A review session: while it is active and not paused, new screenshots are
+/// added to [albumId] as pending shots.
+class ReviewSession {
+  const ReviewSession({
+    required this.id,
+    required this.albumId,
+    required this.startedAt,
+    required this.paused,
+  });
+  final String id;
+  final String albumId;
+  final DateTime startedAt;
+  final bool paused;
+}
+
 /// Album plus the numbers the Albums list needs.
 class AlbumSummary {
   const AlbumSummary({

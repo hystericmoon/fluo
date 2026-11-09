@@ -149,7 +149,10 @@ class FluoButton extends StatelessWidget {
     return Pressable(
       onTap: onPressed,
       radius: radius,
-      builder: (_, _) => Container(
+      builder: (_, _) => Opacity(
+        // Disabled: no handler. Dimmed, and the semantics node is not enabled.
+        opacity: onPressed == null ? 0.45 : 1,
+        child: Container(
         height: height,
         padding: EdgeInsets.symmetric(horizontal: hPad),
         decoration: BoxDecoration(
@@ -173,6 +176,7 @@ class FluoButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

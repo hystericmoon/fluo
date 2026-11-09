@@ -107,6 +107,38 @@ class FluoRepo {
   void _touch(String albumId, [DateTime? now]) => _db.execute(
       'UPDATE albums SET updated_at = ? WHERE id = ?', [_ms(now ?? DateTime.now()), albumId]);
 
+  // ---- Sessions ----------------------------------------------------------
+
+  /// Starts capturing into [albumId], ending any session that was active.
+  ReviewSession startSession(String albumId, {DateTime? now}) {
+    final t = now ?? DateTime.now();
+    final id = newId();
+    _tx(() {
+      _db.execute('UPDATE sessions SET ended_at = ? WHERE ended_at IS NULL', [_ms(t)]);
+      _db.execute('INSERT INTO sessions (id, album_id, started_at) VALUES (?, ?, ?)',
+          [id, albumId, _ms(t)]);
+    });
+    return activeSession()!;
+  }
+
+  ReviewSession? activeSession() {
+    final rows = _db.select('SELECT * FROM sessions WHERE ended_at IS NULL');
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    return ReviewSession(
+      id: r['id'] as String,
+      albumId: r['album_id'] as String,
+      startedAt: _t(r['started_at']),
+      paused: (r['paused'] as int) == 1,
+    );
+  }
+
+  void setSessionPaused(bool paused) =>
+      _db.execute('UPDATE sessions SET paused = ? WHERE ended_at IS NULL', [paused ? 1 : 0]);
+
+  void endSession({DateTime? now}) => _db.execute(
+      'UPDATE sessions SET ended_at = ? WHERE ended_at IS NULL', [_ms(now ?? DateTime.now())]);
+
   // ---- Shots -------------------------------------------------------------
 
   Shot _shot(Row r) => Shot(

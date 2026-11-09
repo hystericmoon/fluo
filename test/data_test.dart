@@ -250,7 +250,7 @@ void main() {
   group('schema', () {
     test('records its version and reopening does not re-run migrations', () {
       final v = repo; // opened in setUp
-      expect(FluoDb.schemaVersion, 1);
+      expect(FluoDb.schemaVersion, 2);
       v.createAlbum('keep me');
       v.close();
       repo = openRepo();
@@ -272,6 +272,86 @@ void main() {
       expect(a.id, isNotEmpty);
       expect(() => repo.addPin('no-such-shot', Severity.bug, 0, 0), throwsA(anything));
       expect(repo.listAlbums(), hasLength(1));
+    });
+  });
+
+  group('migration v1 to v2', () {
+    test('upgrades a real v1 database in place and keeps every row', () async {
+      repo.close();
+      final path = p.join(tmp.path, 'old.db');
+      final store = FileStore(Directory(p.join(tmp.path, 'app')));
+
+      // An install that never saw v2.
+      final old = FluoRepo(FluoDb.open(path, upTo: 1), store);
+      final a = old.createAlbum('Kept through the upgrade');
+      final s1 = await old.addShot(a.id, shot('a.png', [1, 2, 3]));
+      old.addPin(s1.id, Severity.ux, .3, .3, note: 'still here');
+      expect(() => old.activeSession(), throwsA(anything), reason: 'v1 has no sessions table');
+      old.close();
+
+      // The app updates and opens it.
+      repo = FluoRepo(FluoDb.open(path), store);
+      expect(repo.listAlbums().single.album.name, 'Kept through the upgrade');
+      expect(repo.shotsIn(a.id).single.id, s1.id);
+      expect(repo.pinsFor(s1.id).single.note, 'still here');
+      expect(repo.activeSession(), isNull);
+      repo.startSession(a.id);
+      expect(repo.activeSession()!.albumId, a.id);
+    });
+
+    test('a migration that fails half way is rolled back completely', () {
+      repo.close();
+      final path = p.join(tmp.path, 'v1.db');
+      final raw = FluoDb.open(path, upTo: 1);
+      // Migration 2 creates the sessions table, then an index. Take the index
+      // name so the second statement fails after the first has succeeded.
+      raw.db.execute('CREATE TABLE other (y)');
+      raw.db.execute('CREATE INDEX one_active_session ON other(y)');
+      raw.close();
+
+      expect(() => FluoDb.open(path), throwsA(anything));
+
+      final check = FluoDb.open(path, upTo: 1);
+      final version = check.db.select('PRAGMA user_version').first.values.first;
+      final tables = check.db
+          .select("SELECT name FROM sqlite_master WHERE type = 'table'")
+          .map((r) => r['name'])
+          .toSet();
+      check.close();
+      expect(version, 1);
+      expect(tables, isNot(contains('sessions')), reason: 'the created table was rolled back');
+    });
+  });
+
+  group('sessions', () {
+    test('only one session is active; starting another ends the first', () {
+      final a = repo.createAlbum('A');
+      final b = repo.createAlbum('B');
+      repo.startSession(a.id);
+      expect(repo.activeSession()!.albumId, a.id);
+      repo.startSession(b.id);
+      expect(repo.activeSession()!.albumId, b.id);
+      repo.endSession();
+      expect(repo.activeSession(), isNull);
+    });
+
+    test('pause and resume, and it survives a restart', () {
+      final a = repo.createAlbum('A');
+      repo.startSession(a.id, now: DateTime(2026, 11, 9, 9));
+      repo.setSessionPaused(true);
+      repo.close();
+      repo = openRepo();
+      final s = repo.activeSession()!;
+      expect((s.albumId, s.paused, s.startedAt), (a.id, true, DateTime(2026, 11, 9, 9)));
+      repo.setSessionPaused(false);
+      expect(repo.activeSession()!.paused, isFalse);
+    });
+
+    test('deleting the album ends its session', () async {
+      final a = repo.createAlbum('A');
+      repo.startSession(a.id);
+      await repo.deleteAlbum(a.id);
+      expect(repo.activeSession(), isNull);
     });
   });
 }

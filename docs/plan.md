@@ -9,4 +9,4 @@
 7. **Exporters.** Claude pack, PDF, long image, share. Done when redacted areas are solid in every export and originals are excluded by default.
 8. **Motion and access.** Motion kit, reduced-motion, tap alternatives, a button alternative for reordering, TalkBack actions. Done when the TalkBack pass has no unreachable action.
 9. **Settings and updates.** Colour themes, auto-update mechanism (decide: Play in-app updates or release check), version display. Done when a theme change applies across all screens.
-10. **Release checks.** Fluo trademark, domain and store availability; React Bits license; signing; store listing. Done when each item is written down as cleared or changed.
+10. **Release checks.** Fluo trademark, domain and store availability; React Bits license; signing; store listing; Play declaration for the `specialUse` foreground service; confirm the release build has no INTERNET permission; font (OFL) licences. Done when each item is written down as cleared or changed.
