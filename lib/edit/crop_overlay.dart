@@ -3,11 +3,11 @@ import 'package:flutter/gestures.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../data/models.dart';
-import '../theme/tokens.dart';
 import 'editor_state.dart';
 import '../motion/motion.dart';
 import 'quick_pan.dart';
 import 'viewport.dart';
+import '../theme/accent.dart';
 
 enum _Handle { tl, tr, bl, br, move }
 
@@ -171,6 +171,7 @@ class _CropOverlayState extends State<CropOverlay>
             widget.viewport.display,
             () => _widgetRect(widget.viewport, _crop),
             _enter,
+            context.accent.color,
           ),
         ),
       ),
@@ -179,7 +180,8 @@ class _CropOverlayState extends State<CropOverlay>
 }
 
 class _CropPainter extends CustomPainter {
-  _CropPainter(this.image, this.target, this.enter) : super(repaint: enter);
+  _CropPainter(this.image, this.target, this.enter, this.accent) : super(repaint: enter);
+  final Color accent;
   final Rect image;
   final Rect Function() target;
   final Animation<double> enter;
@@ -198,7 +200,7 @@ class _CropPainter extends CustomPainter {
     canvas.drawPath(outside, Paint()..color = const Color(0xB3000000));
 
     final edge = Paint()
-      ..color = FluoColors.lime
+      ..color = accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawRect(crop, edge);
@@ -222,7 +224,7 @@ class _CropPainter extends CustomPainter {
 
     // Corner brackets.
     final br = Paint()
-      ..color = FluoColors.lime
+      ..color = accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;

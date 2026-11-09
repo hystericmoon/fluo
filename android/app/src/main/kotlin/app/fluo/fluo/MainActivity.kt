@@ -9,6 +9,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         capture = CaptureChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        NetworkChannel(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {

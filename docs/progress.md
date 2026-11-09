@@ -1,9 +1,17 @@
 Last updated 2026-11-09
 
 ## Next up
-Session 9: Settings and updates. Colour themes (route the accent through the theme: it is fixed lime in `lib/ui/kit.dart` today), the in-app "Reduce motion" switch (`MotionScope` exists, wire `FluoApp.reduceMotion`), the auto-update mechanism, version display. Check every theme's colours with `lib/theme/contrast.dart` the way `test/contrast_test.dart` does. Done when a theme change applies across all screens.
+Session 10: Release checks (see docs/plan.md). Write each item down as cleared or changed in a new `docs/release.md`:
+- Fluo trademark, domain and store-name availability (cannot be cleared from here: needs a person; a DNS lookup can say if a domain resolves).
+- React Bits licence (fetch the real licence text from its GitHub repo; nothing was copied, the motion kit is original code).
+- Signing: release signing config reading `key.properties` (never commit a key), `flutter build appbundle`.
+- Store listing draft (title, short and long description, screenshots list, data safety answers: no data collected, no accounts, local only).
+- Google Play declaration for the `specialUse` foreground service (justification text is drafted in the manifest).
+- Confirm the release build has NO `INTERNET` permission (debug has it for hot reload). `flutter build apk --release` then `aapt2 dump badging`.
+- Font (OFL) licences for Lexend and Inter: add the licence files and an in-app or doc credit.
+- Privacy: say plainly that nothing leaves the phone except what the person shares.
 
-Still owed from sessions 1 to 8: run on a physical Android device, and the manual TalkBack script in `docs/accessibility.md`. Nothing has run on hardware.
+Still owed from every session: run on a physical Android device and do the manual TalkBack script in docs/accessibility.md. Nothing has run on hardware.
 
 ## Open items
 - Session 7: Albums, Triage, Album, Editor and Export are real. Only Settings (session 9) still shows fixed content.
@@ -33,11 +41,16 @@ Still owed from sessions 1 to 8: run on a physical Android device, and the manua
 - Session 7: the long image is cut into numbered parts above 7000px tall (a 19-screen album is about 3 parts). One scrolling image is not always possible on phones.
 - Session 7: the PDF cannot be checked for pixel content in tests (it compresses images). Its pages are built from the same baked PNG bytes the other formats use, which are pixel-tested.
 - Session 7: exports are written to the app cache and shared as files. If the share sheet fails after the files are written they stay until the next export or app start.
-- Session 8: the accent colour is still fixed lime; the in-app reduce-motion switch exists as `FluoApp.reduceMotion` but nothing sets it yet (session 9).
+- Session 9: DONE: accent themes and the Reduce motion switch are real and saved.
 - Session 8: tests use reduced motion by default (`host(reduceMotion: true)`) because the live border on the session card never stops animating, so `pumpAndSettle` would never finish. Pass `reduceMotion: false` to test motion. After a delete, use `pump()` not `pumpAndSettle()`: the undo fuse is an animation and settling lets it burn.
 - Session 8: shadcn_flutter has its own Row, Column and Flex that do not raise RenderFlex overflow errors, so overflow cannot be caught by tests. Text scaling is checked by control size instead (`test/text_scale_test.dart`). Beware of long text in new rows: use `Expanded` plus ellipsis.
 - Session 8: the audit found and fixed: text fields with no accessible name (the wrapper and the field were two conflicting nodes), a squeezed control row at large text, and a warning border below 3:1.
 - Session 8: the freehand pen has no non-gesture route. Revisit if that matters.
+- Session 9: Settings is real. Five themes (all pass contrast; `test/contrast_test.dart` checks every pair per theme), Reduce motion, Auto-update, Wi-Fi only, real version, Check for updates. Settings live in a v3 `settings` table.
+- Session 9: DECIDED (user away): updates use Google Play in-app updates, not a GitHub release check, to keep the app free of the INTERNET permission. Consequences: it only works for copies installed from Play (sideloaded copies say "Updates come through Google Play"); the Play flexible-update dialog asks consent when an auto-download starts at launch; it cannot be tested without a Play build (use internal app sharing or an internal test track).
+- Session 9: Wi-Fi only means "unmetered connection" (Wi-Fi or Ethernet, not a metered hotspot). The permission added is ACCESS_NETWORK_STATE, which is not internet access.
+- Session 9: UNVERIFIED on a device: the Play in-app update flow, `NetworkChannel`, theme switching on hardware.
+- Session 9: the test harness `host()` now provides settings, accent and update fakes. `FluoApp.reduceMotion` is `bool?` (null = follow Settings).
 - Session 2: screens use fake data from `lib/data/fake_data.dart`; buttons that need real logic are inert (Keep, Discard, Undo, Pause, New album, Export, Check for updates). Each is owned by a later session.
 - Session 2: the accent colour is fixed lime in `lib/ui/kit.dart`. Settings only recolours its own preview. Session 9 must route the accent through the theme.
 - Session 2: pin badges are lettered circles as in the mocks. Severity chips and dots use shape too. Decide in session 6 whether badges on the canvas also need a shape per severity (CLAUDE.md: letter, shape and colour).
@@ -58,3 +71,4 @@ Still owed from sessions 1 to 8: run on a physical Android device, and the manua
 - 2026-11-09: Session 6 editor. Crop, pen, arrow, box, pins with severity (shape, letter, colour), redact and captions, stored as vector data. One shared renderer; redaction proven opaque by pixel tests. Discarded screenshots now deleted. About 179 tests. Fixed: vertical strokes scrolling the page, drags starting 18px late, merged semantics containers, zero-length pen strokes.
 - 2026-11-09: Session 7 exporters. Claude pack ZIP, PDF, long image and share images, built from one baked render. Redactions proven solid in every format by pixel tests; originals excluded by default and never in PDF or long image. Export screen is real: counts, notices, progress, errors. 225 tests.
 - 2026-11-09: Session 8 motion and access. Motion kit (Hold Button, Swipe Row, Undo Fuse, live border, crop frame entry, card entrance) with reduced motion; delete album with undo; button reordering; buttons for adding and moving boxes, arrows and redactions; contrast, label, 44dp, large-text and keyboard audits; docs/accessibility.md.
+- 2026-11-09: Session 9 settings and updates. Settings table (migration v3, tested on an upgraded v2 database), five accent themes applied app-wide via `context.accent`, Reduce motion switch, update controller with Wi-Fi only and a 12-hour gap, real version display. 445 tests, Kotlin tests and debug APK pass.

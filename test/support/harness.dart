@@ -6,6 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fluo/capture/capture_controller.dart';
 import 'package:fluo/export/export_scope.dart';
 import 'package:fluo/motion/motion.dart';
+import 'package:fluo/settings/app_settings.dart';
+import 'package:fluo/settings/settings_scope.dart';
+import 'package:fluo/theme/accent.dart';
+import 'package:fluo/update/update_controller.dart';
+import 'package:fluo/update/update_scope.dart';
 import 'package:fluo/export/export_service.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:fluo/capture/capture_scope.dart';
@@ -19,6 +24,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'fake_share.dart';
 import 'fake_source.dart';
+import 'fake_update.dart';
 
 FluoRepo memRepo() {
   final dir = Directory.systemTemp.createTempSync('fluo_ui_');
@@ -45,22 +51,48 @@ ExportServices testExports([FakeShare? share]) {
 /// [reduceMotion] defaults to true so `pumpAndSettle` can finish: some
 /// animations (the live border) never end. Motion tests turn it off.
 Widget host(Widget home,
-    {FluoRepo? repo, FakeSource? source, ExportServices? exports, bool reduceMotion = true}) {
+    {FluoRepo? repo,
+    FakeSource? source,
+    ExportServices? exports,
+    bool reduceMotion = true,
+    AppSettings? settings,
+    FakeUpdateSource? update,
+    FakeNetwork? network}) {
   final r = repo ?? memRepo();
   final c = CaptureController(r, source ?? FakeSource());
   addTearDown(c.dispose);
+  final st = settings ?? AppSettings(r);
+  final u = UpdateController(
+    settings: st,
+    source: update ?? FakeUpdateSource(),
+    network: network ?? FakeNetwork(),
+    appInfo: const FakeAppInfo(),
+  );
+  addTearDown(u.dispose);
   return RepoScope(
     repo: r,
-    child: MotionScope(
-      reduce: reduceMotion,
-      child: ExportScope(
-        services: exports ?? testExports(),
-        child: CaptureScope(
-          controller: c,
-          child: ShadcnApp(
-            debugShowCheckedModeBanner: false,
-            theme: fluoTheme(),
-            home: home,
+    child: SettingsScope(
+      settings: st,
+      child: UpdateScope(
+        controller: u,
+        child: ListenableBuilder(
+          listenable: st,
+          builder: (context, _) => AccentScope(
+            accent: st.accent,
+            child: MotionScope(
+              reduce: reduceMotion || st.reduceMotion,
+              child: ExportScope(
+                services: exports ?? testExports(),
+                child: CaptureScope(
+                  controller: c,
+                  child: ShadcnApp(
+                    debugShowCheckedModeBanner: false,
+                    theme: fluoTheme(accent: st.accent),
+                    home: home,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

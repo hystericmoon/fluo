@@ -40,6 +40,7 @@ void paintEdit(
   required List<Annotation> annotations,
   required List<Pin> pins,
   String? selectedId,
+  Color selectionColor = FluoColors.lime,
   double pinMinPx = 0,
 }) {
   final d = vp.display;
@@ -101,7 +102,7 @@ void paintEdit(
   // Selection is drawn outside the clip so handles at the edge stay visible.
   if (selectedId != null) {
     final ring = Paint()
-      ..color = FluoColors.lime
+      ..color = selectionColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     for (final p in pins.where((p) => p.id == selectedId)) {
@@ -205,7 +206,9 @@ class EditPainter extends CustomPainter {
     required this.annotations,
     required this.pins,
     this.selectedId,
+    this.selectionColor = FluoColors.lime,
   });
+  final Color selectionColor;
   final ui.Image image;
   final EditViewport viewport;
   final List<Annotation> annotations;
@@ -220,6 +223,7 @@ class EditPainter extends CustomPainter {
         annotations: annotations,
         pins: pins,
         selectedId: selectedId,
+        selectionColor: selectionColor,
         pinMinPx: 26,
       );
 

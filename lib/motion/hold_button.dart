@@ -4,6 +4,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../theme/tokens.dart';
 import 'motion.dart';
+import '../theme/accent.dart';
 
 /// A button for something hard to undo: hold it to confirm.
 ///
@@ -189,7 +190,7 @@ class _HoldButtonState extends State<HoldButton> with SingleTickerProviderStateM
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: FluoColors.lime, width: 2),
+                        border: Border.all(color: context.accent.color, width: 2),
                       ),
                     ),
                   ),

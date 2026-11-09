@@ -1,6 +1,7 @@
 import 'dart:ui' show Color;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fluo/theme/accent.dart';
 import 'package:fluo/theme/contrast.dart';
 import 'package:fluo/theme/tokens.dart';
 
@@ -37,6 +38,23 @@ void main() {
     text('soft lime on the lime tint (selected chip)', FluoColors.limeSoft, FluoColors.limeTint);
     text('lime on the lime tint', FluoColors.lime, FluoColors.limeTint);
     text('foreground on the lime tint', FluoColors.fg, FluoColors.limeTint);
+  });
+
+  group('every selectable theme', () {
+    for (final a in Accent.all) {
+      group(a.name, () {
+        text('text on the accent (primary buttons)', a.onColor, a.color);
+        text('accent text on the page', a.color, FluoColors.bg);
+        text('soft-tint text on its tint (selected chip, session card)', a.text, a.soft);
+        text('accent on its own tint', a.color, a.soft);
+        text('foreground on its tint', FluoColors.fg, a.soft);
+        text('muted on its tint', FluoColors.fgMuted, a.soft);
+        ui('accent border on the page', a.color, FluoColors.bg);
+        ui('accent border on a card', a.color, FluoColors.surface);
+        ui('focus ring on the page', a.color, FluoColors.bg);
+        ui('accent border on its tint', a.color, a.soft);
+      });
+    }
   });
 
   group('severity colours', () {

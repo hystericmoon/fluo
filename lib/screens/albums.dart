@@ -15,6 +15,7 @@ import '../ui/shot_image.dart';
 import 'album.dart';
 import 'settings.dart';
 import 'triage.dart';
+import '../theme/accent.dart';
 
 /// Albums list, read from the local database, with the session card.
 class AlbumsScreen extends StatefulWidget {
@@ -218,7 +219,7 @@ class _SessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final on = status == CaptureStatus.watching;
     final (dot, label) = switch (status) {
-      CaptureStatus.watching => (FluoColors.lime, 'Session on'),
+      CaptureStatus.watching => (context.accent.color, 'Session on'),
       CaptureStatus.paused => (FluoColors.fgMuted, 'Session paused'),
       CaptureStatus.unsupported => (FluoColors.fgMuted, 'Not available'),
       // Before the first check has finished: neutral, not a false warning.
@@ -247,12 +248,12 @@ class _SessionCard extends StatelessWidget {
       // not live or when motion is reduced; the words say the same thing.
       child: FluoStarBorder(
         active: on,
-        color: FluoColors.lime,
+        color: context.accent.color,
         radius: 16,
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: on ? FluoColors.limeTint : FluoColors.surface,
+            color: on ? context.accent.soft : FluoColors.surface,
             borderRadius: BorderRadius.circular(16),
             border: on ? null : Border.all(color: FluoColors.borderStrong),
           ),
@@ -275,7 +276,7 @@ class _SessionCard extends StatelessWidget {
                     style: fs(
                       13,
                       w: FontWeight.w500,
-                      c: on ? FluoColors.limeSoft : FluoColors.fg,
+                      c: on ? context.accent.text : FluoColors.fg,
                     ),
                   ),
                 ],
@@ -354,7 +355,7 @@ class _AlbumRow extends StatelessWidget {
     child: ExcludeSemantics(child: ShotImage(path: path, cacheWidth: 80)),
   );
 
-  Widget _thumb(bool lime) => Container(
+  Widget _thumb(bool lime, Color accent) => Container(
     width: 34,
     height: 60,
     padding: const EdgeInsets.all(5),
@@ -388,7 +389,7 @@ class _AlbumRow extends StatelessWidget {
         Container(
           height: 8,
           decoration: BoxDecoration(
-            color: lime ? FluoColors.lime : const Color(0xFF3F3F46),
+            color: lime ? accent : const Color(0xFF3F3F46),
             borderRadius: BorderRadius.circular(3),
           ),
         ),
@@ -418,7 +419,7 @@ class _AlbumRow extends StatelessWidget {
                   if (i > 0) const SizedBox(width: 4),
                   i < thumbs.length
                       ? _real(thumbs[i])
-                      : _thumb(i == 0 && thumbs.isEmpty),
+                      : _thumb(i == 0 && thumbs.isEmpty, context.accent.color),
                 ],
               ],
             ),

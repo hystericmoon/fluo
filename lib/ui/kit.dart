@@ -3,6 +3,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../data/models.dart';
 import '../theme/tokens.dart';
+import '../theme/accent.dart';
 
 /// Pushes a screen with a short fade. Motion polish comes in session 8.
 Route<T> fluoRoute<T>(Widget page) => PageRouteBuilder<T>(
@@ -105,7 +106,7 @@ class _PressableState extends State<Pressable> {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(widget.radius + 4),
-                        border: Border.all(color: FluoColors.lime, width: 2),
+                        border: Border.all(color: context.accent.color, width: 2),
                       ),
                     ),
                   ),
@@ -149,7 +150,7 @@ class FluoButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg, border) = switch (kind) {
-      BtnKind.primary => (FluoColors.lime, FluoColors.onLime, null),
+      BtnKind.primary => (context.accent.color, context.accent.onColor, null),
       BtnKind.outline => (null, FluoColors.fg, FluoColors.borderStrong),
       BtnKind.danger => (null, FluoColors.bug, FluoColors.bug),
     };
@@ -298,17 +299,17 @@ class FluoChip extends StatelessWidget {
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: selected ? FluoColors.limeTint : null,
+          color: selected ? context.accent.soft : null,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-              color: selected ? FluoColors.lime : FluoColors.borderStrong),
+              color: selected ? context.accent.color : FluoColors.borderStrong),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           if (leading != null) ...[leading!, const SizedBox(width: 7)],
           Text(label,
               style: fs(14,
                   w: FontWeight.w500,
-                  c: selected ? FluoColors.limeSoft : FluoColors.fg)),
+                  c: selected ? context.accent.text : FluoColors.fg)),
         ]),
       ),
     );
@@ -342,7 +343,7 @@ class SwitchRow extends StatelessWidget {
     required this.help,
     required this.value,
     required this.onChanged,
-    this.accent = FluoColors.lime,
+    this.accent,
     this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     this.enabled = true,
   });
@@ -353,7 +354,7 @@ class SwitchRow extends StatelessWidget {
 
   /// Off: dimmed and not tappable (the setting does not apply right now).
   final bool enabled;
-  final Color accent;
+  final Color? accent;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -382,7 +383,7 @@ class SwitchRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            _Track(on: value, accent: accent),
+            _Track(on: value, accent: accent ?? context.accent.color),
           ]),
         ),
       ),
@@ -413,7 +414,7 @@ class _Track extends StatelessWidget {
           height: 18,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: on ? FluoColors.onLime : FluoColors.fg,
+            color: on ? context.accent.onColor : FluoColors.fg,
           ),
         ),
       );

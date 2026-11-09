@@ -14,6 +14,7 @@ import '../edit/render.dart';
 import '../edit/viewport.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
+import '../theme/accent.dart';
 
 /// Edit one screenshot: crop, draw, pin, redact and caption. Everything is
 /// saved as it happens and the original file is never changed.
@@ -167,11 +168,11 @@ class _EditorScreenState extends State<EditorScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: on ? FluoColors.lime : FluoColors.surface,
+                    color: on ? context.accent.color : FluoColors.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: on ? FluoColors.lime : FluoColors.border),
+                    border: Border.all(color: on ? context.accent.color : FluoColors.border),
                   ),
-                  child: Icon(_tools[t]!.$1, size: 22, color: on ? FluoColors.onLime : FluoColors.fg),
+                  child: Icon(_tools[t]!.$1, size: 22, color: on ? context.accent.onColor : FluoColors.fg),
                 );
               },
             ),
@@ -445,15 +446,15 @@ class _EditorScreenState extends State<EditorScreen> {
               height: 44,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: s.selectedId == id ? FluoColors.limeTint : null,
+                color: s.selectedId == id ? context.accent.soft : null,
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: s.selectedId == id ? FluoColors.lime : FluoColors.borderStrong),
+                border: Border.all(color: s.selectedId == id ? context.accent.color : FluoColors.borderStrong),
               ),
               // Center with a width factor keeps the chip as wide as its text.
               child: Center(
                 widthFactor: 1,
                 child: Text(text,
-                    style: fs(14, w: FontWeight.w500, c: s.selectedId == id ? FluoColors.limeSoft : FluoColors.fg)),
+                    style: fs(14, w: FontWeight.w500, c: s.selectedId == id ? context.accent.text : FluoColors.fg)),
               ),
             ),
           ),
@@ -527,6 +528,7 @@ class _CanvasState extends State<_Canvas> {
               annotations: [...s.annotations, ?draft],
               pins: pins,
               selectedId: s.selectedId,
+              selectionColor: context.accent.color,
             ),
           ),
         ),

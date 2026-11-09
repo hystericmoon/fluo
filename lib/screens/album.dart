@@ -11,6 +11,7 @@ import '../ui/shot_image.dart';
 import 'editor.dart';
 import 'export.dart';
 import 'triage.dart';
+import '../theme/accent.dart';
 
 enum _Mode { grid, flow }
 
@@ -271,7 +272,7 @@ class _Tile extends StatelessWidget {
                       top: 6,
                       child: PinBadge(
                         '$number',
-                        FluoColors.lime,
+                        context.accent.color,
                         size: 26,
                         ringed: true,
                       ),
@@ -329,9 +330,9 @@ class _Tile extends StatelessWidget {
           decoration: BoxDecoration(
             color: FluoColors.bg.withValues(alpha: 0.92),
             shape: BoxShape.circle,
-            border: Border.all(color: FluoColors.lime, width: 2),
+            border: Border.all(color: context.accent.color, width: 2),
           ),
-          child: Icon(icon, size: 20, color: FluoColors.lime),
+          child: Icon(icon, size: 20, color: context.accent.color),
         ),
       ),
     );
@@ -374,9 +375,9 @@ class _PendingBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
       decoration: BoxDecoration(
-        color: FluoColors.limeTint,
+        color: context.accent.soft,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: FluoColors.lime),
+        border: Border.all(color: context.accent.color),
       ),
       child: Row(
         children: [
@@ -385,7 +386,7 @@ class _PendingBanner extends StatelessWidget {
               count == 1
                   ? '1 new screenshot to review'
                   : '$count new screenshots to review',
-              style: fs(14, w: FontWeight.w500, c: FluoColors.limeSoft),
+              style: fs(14, w: FontWeight.w500, c: context.accent.text),
             ),
           ),
           const SizedBox(width: 10),
@@ -441,16 +442,16 @@ class _Segmented extends StatelessWidget {
       onTap: tap,
       selected: on,
       radius: 8,
-      builder: (_, _) => Container(
+      builder: (context, _) => Container(
         height: 44,
         alignment: Alignment.center,
-        color: on ? FluoColors.lime : null,
+        color: on ? context.accent.color : null,
         child: Text(
           label,
           style: fs(
             15,
             w: FontWeight.w500,
-            c: on ? FluoColors.onLime : FluoColors.fg,
+            c: on ? context.accent.onColor : FluoColors.fg,
           ),
         ),
       ),

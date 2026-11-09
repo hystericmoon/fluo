@@ -250,7 +250,7 @@ void main() {
   group('schema', () {
     test('records its version and reopening does not re-run migrations', () {
       final v = repo; // opened in setUp
-      expect(FluoDb.schemaVersion, 2);
+      expect(FluoDb.schemaVersion, 3);
       v.createAlbum('keep me');
       v.close();
       repo = openRepo();
@@ -367,6 +367,44 @@ void main() {
       expect(repo.getShot(sb.id), isNotNull);
       expect(await repo.purgeDiscarded(albumId: a.id), 0);
       expect(await repo.purgeDiscarded(), 1);
+    });
+  });
+
+  group('settings and migration v2 to v3', () {
+    test('values are stored, replaced, removed and survive a restart', () {
+      expect(repo.getSetting('accent'), isNull);
+      repo.setSetting('accent', 'violet');
+      repo.setSetting('accent', 'cyan'); // replaces
+      repo.setSetting('auto_update', 'true');
+      expect(repo.getSetting('accent'), 'cyan');
+      repo.close();
+      repo = openRepo();
+      expect(repo.getSetting('accent'), 'cyan');
+      expect(repo.getSetting('auto_update'), 'true');
+      repo.removeSetting('accent');
+      expect(repo.getSetting('accent'), isNull);
+      expect(repo.getSetting('auto_update'), 'true');
+    });
+
+    test('a v2 database (with albums and a session) upgrades to v3 and keeps everything', () async {
+      repo.close();
+      final path = p.join(tmp.path, 'v2.db');
+      final store = FileStore(Directory(p.join(tmp.path, 'app')));
+      final old = FluoRepo(FluoDb.open(path, upTo: 2), store);
+      final a = old.createAlbum('Kept');
+      final s = await old.addShot(a.id, shot('x.png', [1, 2]));
+      old.setStatus(s.id, ShotStatus.kept);
+      old.startSession(a.id);
+      expect(() => old.getSetting('accent'), throwsA(anything), reason: 'v2 has no settings table');
+      old.close();
+
+      repo = FluoRepo(FluoDb.open(path), store);
+      expect(repo.listAlbums().single.album.name, 'Kept');
+      expect(repo.shotsIn(a.id, status: ShotStatus.kept), hasLength(1));
+      expect(repo.activeSession()!.albumId, a.id);
+      expect(repo.getSetting('accent'), isNull);
+      repo.setSetting('accent', 'pink');
+      expect(repo.getSetting('accent'), 'pink');
     });
   });
 

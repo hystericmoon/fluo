@@ -11,6 +11,7 @@ import '../ui/kit.dart';
 import '../ui/shot_image.dart';
 import '../ui/swipe_card.dart';
 import 'album.dart';
+import '../theme/accent.dart';
 
 /// Sort the album's pending screenshots: keep or discard (buttons or flick),
 /// undo, and name each one.
@@ -294,14 +295,14 @@ class _AllSorted extends StatelessWidget {
           Container(
             width: 56,
             height: 56,
-            decoration: const BoxDecoration(
-              color: FluoColors.limeTint,
+            decoration: BoxDecoration(
+              color: context.accent.soft,
               shape: BoxShape.circle,
             ),
             child: Icon(
               none ? LucideIcons.images : LucideIcons.check,
               size: 28,
-              color: FluoColors.lime,
+              color: context.accent.color,
             ),
           ),
           const SizedBox(height: 16),

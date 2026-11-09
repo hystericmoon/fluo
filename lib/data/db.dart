@@ -105,4 +105,11 @@ const _migrations = <String>[
   );
   CREATE UNIQUE INDEX one_active_session ON sessions((1)) WHERE ended_at IS NULL;
   ''',
+  // 3: app settings (theme, reduced motion, update choices) as key/value rows.
+  '''
+  CREATE TABLE settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+  ''',
 ];

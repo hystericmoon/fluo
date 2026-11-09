@@ -6,6 +6,7 @@ import '../export/export_service.dart';
 import '../export/model.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
+import '../theme/accent.dart';
 
 const _descriptions = {
   ExportFormat.claude: 'Markdown and images in a ZIP: captions, pins and a review brief as text',
@@ -165,9 +166,9 @@ class _ExportScreenState extends State<ExportScreen> {
       builder: (_, _) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: on ? FluoColors.limeTint : FluoColors.surface,
+          color: on ? context.accent.soft : FluoColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: on ? FluoColors.lime : FluoColors.border),
+          border: Border.all(color: on ? context.accent.color : FluoColors.border),
         ),
         child: ExcludeSemantics(
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -178,14 +179,14 @@ class _ExportScreenState extends State<ExportScreen> {
                 height: 20,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: on ? FluoColors.lime : FluoColors.borderStrong, width: 2),
+                  border: Border.all(color: on ? context.accent.color : FluoColors.borderStrong, width: 2),
                 ),
                 alignment: Alignment.center,
                 child: on
                     ? Container(
                         width: 10,
                         height: 10,
-                        decoration: const BoxDecoration(color: FluoColors.lime, shape: BoxShape.circle))
+                        decoration: BoxDecoration(color: context.accent.color, shape: BoxShape.circle))
                     : null,
               ),
             ),
@@ -198,11 +199,11 @@ class _ExportScreenState extends State<ExportScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: FluoColors.limeTint,
+                        color: context.accent.soft,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: FluoColors.lime),
+                        border: Border.all(color: context.accent.color),
                       ),
-                      child: Text('Best for Claude', style: fs(12, w: FontWeight.w500, c: FluoColors.limeSoft)),
+                      child: Text('Best for Claude', style: fs(12, w: FontWeight.w500, c: context.accent.text)),
                     ),
                 ]),
                 const SizedBox(height: 3),

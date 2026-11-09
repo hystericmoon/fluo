@@ -5,6 +5,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
 import 'motion.dart';
+import '../theme/accent.dart';
 
 /// The undo bar after a delete: a message, an Undo button and a fuse that
 /// burns down. When it is gone, [onBurnt] makes the delete final.
@@ -120,7 +121,7 @@ class _UndoFuseState extends State<UndoFuse> with SingleTickerProviderStateMixin
                 alignment: Alignment.centerLeft,
                 child: FractionallySizedBox(
                   widthFactor: 1 - c.value,
-                  child: Container(height: 3, color: FluoColors.lime),
+                  child: Container(height: 3, color: context.accent.color),
                 ),
               ),
             )

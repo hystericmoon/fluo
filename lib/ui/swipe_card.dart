@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../theme/tokens.dart';
+import '../theme/accent.dart';
 
 /// A card you can flick right to keep or left to discard. The buttons beside
 /// it do the same thing (WCAG 2.5.1), and TalkBack gets both as actions.
@@ -115,7 +116,7 @@ class _SwipeCardState extends State<SwipeCard> with SingleTickerProviderStateMix
             child: Stack(children: [
               widget.child,
               // Words and icons, not only colour: which way is which.
-              if (keep) _stamp('Keep', LucideIcons.check, FluoColors.lime, Alignment.topLeft, t),
+              if (keep) _stamp('Keep', LucideIcons.check, context.accent.color, Alignment.topLeft, t),
               if (discard) _stamp('Discard', LucideIcons.trash2, FluoColors.bug, Alignment.topRight, -t),
             ]),
           ),

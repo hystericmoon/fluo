@@ -107,6 +107,20 @@ class FluoRepo {
   void _touch(String albumId, [DateTime? now]) => _db.execute(
       'UPDATE albums SET updated_at = ? WHERE id = ?', [_ms(now ?? DateTime.now()), albumId]);
 
+  // ---- Settings ----------------------------------------------------------
+
+  /// A stored setting, or null if it was never set.
+  String? getSetting(String key) {
+    final rows = _db.select('SELECT value FROM settings WHERE key = ?', [key]);
+    return rows.isEmpty ? null : rows.first['value'] as String;
+  }
+
+  void setSetting(String key, String value) => _db.execute(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      [key, value]);
+
+  void removeSetting(String key) => _db.execute('DELETE FROM settings WHERE key = ?', [key]);
+
   // ---- Sessions ----------------------------------------------------------
 
   /// Starts capturing into [albumId], ending any session that was active.
