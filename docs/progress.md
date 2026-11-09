@@ -1,11 +1,9 @@
 Last updated 2026-11-09
 
 ## Next up
-Session 10 is written up in `docs/release.md`. What is left needs a person:
-- **Blocker: the application ID `app.fluo.fluo` is already taken on Google Play** (a different app also called "Fluo", by Qodar). Pick a new `applicationId` before any upload, and settle the name and trademark.
-- Create the upload keystore and `android/key.properties`, then `flutter build appbundle --release`.
-- Play Console: listing, data safety, `specialUse` declaration (texts are drafted in `docs/release.md`), privacy policy URL, demo video, listing screenshots.
+Session 10 is written up in `docs/release.md`. Decision: no Play Store or App Store release; Fluo is shared as a sideloaded APK with application ID `app.haho.fluo`. Only this remains:
 - Run on a physical Android device and do the manual TalkBack script in `docs/accessibility.md`. Nothing has run on hardware.
+- If a store release is ever wanted: trademark search, upload keystore, Play Console forms (texts drafted in `docs/release.md` and `docs/privacy.md`).
 
 ## Open items
 - Session 7: Albums, Triage, Album, Editor and Export are real. Only Settings (session 9) still shows fixed content.

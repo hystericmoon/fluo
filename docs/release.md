@@ -5,7 +5,7 @@ Status words: **cleared** (done and verified), **changed** (something was wrong 
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Name, trademark, domain, store names | **needs a person**, and one **blocker** found (see 1) |
+| 1 | Name, trademark, domain, store names | changed: application ID is now `app.haho.fluo`; no store release planned (see 1) |
 | 2 | React Bits licence | cleared (with a note) |
 | 3 | Release signing, app bundle | changed |
 | 4 | Store listing draft | changed (drafted below) |
@@ -14,7 +14,11 @@ Status words: **cleared** (done and verified), **changed** (something was wrong 
 | 7 | Font (OFL) licences and credit | changed |
 | 8 | Privacy statement | changed |
 
-## 1. Name, trademark, domain, store names: needs a person
+## 1. Name, trademark, domain, store names
+
+**Decision (2026-11-09): no Play Store or App Store release.** Fluo is shared as a sideloaded APK. The application ID is now `app.haho.fluo` (changed from `app.fluo.fluo`, which a different Play app already uses), and the listing title, if one is ever needed, is "Fluo: Screenshot Review". Because there is no store release, the trademark search, Play Console forms, upload keystore and listing assets below are only needed if that changes. Sideload builds are signed with the debug key (no `key.properties`); updates only install over a build signed with the same key. In-app updates only work for Play installs, so sideloaded copies say so.
+
+Findings from the original check, kept for reference:
 
 Found from here:
 - **BLOCKER: the Android application ID `app.fluo.fluo` is already taken on Google Play.** `https://play.google.com/store/apps/details?id=app.fluo.fluo` is a live listing named "Fluo" by developer Qodar (an expenses, mileage and visits app, site fluo.com.br, last updated Jul 2024). A package name is unique across Play and cannot be changed after the first upload, so a new ID must be chosen **before** any upload. It was not changed here because the ID should follow a domain you own. Suggested pattern: reverse of a domain you control (for example `app.getfluo.fluo` only if you register getfluo.app). Only `applicationId` in `android/app/build.gradle.kts` needs to change; `namespace` and the Kotlin packages can stay `app.fluo.fluo`. Check the new ID the same way (a 404 means free). The platform channel names (`app.fluo/capture`, `app.fluo/network`) are plain strings, not the application ID, so they do not need to change.
