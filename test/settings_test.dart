@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fluo/data/repository.dart';
 import 'package:fluo/main.dart';
