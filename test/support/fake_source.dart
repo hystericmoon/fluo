@@ -9,6 +9,15 @@ class FakeSource implements CaptureSource {
   @override
   String? watchedFolder;
   @override
+  bool canImportFiles = false;
+  final imported = <String>[];
+  @override
+  Future<int> importFiles(List<String> paths) async {
+    imported.addAll(paths);
+    return paths.length;
+  }
+
+  @override
   bool canChooseFolder = false;
   @override
   bool customFolder = false;

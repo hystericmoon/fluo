@@ -23,24 +23,28 @@ class MacCaptureSource implements CaptureSource {
   MacCaptureSource({
     Future<Directory> Function()? screenshotDir,
     Future<Directory> Function()? inboxDir,
+    Future<Directory> Function()? sharedDir,
     Future<void> Function()? openSystemSettings,
     FolderAccess? folderAccess,
     this.pollInterval = const Duration(seconds: 2),
     DateTime Function()? now,
   }) : _screenshotDir = screenshotDir ?? _systemScreenshotDir,
        _inboxDir = inboxDir ?? _defaultInboxDir,
+       _sharedDir = sharedDir ?? _defaultSharedDir,
        _openSystemSettings = openSystemSettings ?? _openPrivacySettings,
        _access = folderAccess ?? MacFolderAccess(),
        _now = now ?? DateTime.now;
 
   final Future<Directory> Function() _screenshotDir;
   final Future<Directory> Function() _inboxDir;
+  final Future<Directory> Function() _sharedDir;
   final Future<void> Function() _openSystemSettings;
   final FolderAccess _access;
   final Duration pollInterval;
   final DateTime Function() _now;
 
   final _captured = StreamController<void>.broadcast();
+  final _shared = StreamController<void>.broadcast();
   StreamSubscription<FileSystemEvent>? _fsSub;
   Timer? _poll;
   bool _scanning = false;
@@ -279,9 +283,14 @@ class MacCaptureSource implements CaptureSource {
 
   /// Copies via a `.part` file so [drain] never sees a half-written image.
   /// A screenshot still being written is retried on the next scan.
-  Future<bool> _copyToInbox(File src, Directory inbox, int modifiedMs) async {
+  Future<bool> _copyToInbox(
+    File src,
+    Directory inbox,
+    int modifiedMs, {
+    String? idSeed,
+  }) async {
     final ext = p.extension(src.path).replaceFirst('.', '').toLowerCase();
-    final base = '${modifiedMs}_${_stableId(p.basename(src.path))}';
+    final base = '${modifiedMs}_${_stableId(idSeed ?? p.basename(src.path))}';
     final target = File(
       p.join(inbox.path, '$base.${ext.isEmpty ? 'png' : ext}'),
     );
@@ -310,6 +319,10 @@ class MacCaptureSource implements CaptureSource {
   Future<List<IncomingShot>> drain() async {
     final inbox = await _inboxDir();
     if (!await inbox.exists()) return const [];
+    return _listShots(inbox);
+  }
+
+  Future<List<IncomingShot>> _listShots(Directory inbox) async {
     final out = <IncomingShot>[];
     await for (final e in inbox.list()) {
       if (e is! File) continue;
@@ -340,17 +353,52 @@ class MacCaptureSource implements CaptureSource {
   @override
   Stream<void> get captured => _captured.stream;
 
-  // Nothing to share *to* on desktop yet.
+  // ---- dropped files ----------------------------------------------------
+  //
+  // Images dropped on the window are copied to a separate folder and handled
+  // like shares on Android: the user picks an album for them.
+
+  static const importExts = {'.png', '.jpg', '.jpeg', '.webp'};
+
   @override
-  Future<List<IncomingShot>> drainShared() async => const [];
+  bool get canImportFiles => true;
+
   @override
-  Future<void> ackShared(List<String> paths) async {}
+  Future<int> importFiles(List<String> paths) async {
+    final dir = await _sharedDir();
+    await dir.create(recursive: true);
+    var n = 0;
+    for (final path in paths) {
+      if (!importExts.contains(p.extension(path).toLowerCase())) continue;
+      final f = File(path);
+      try {
+        if (!await f.exists()) continue;
+        final ms = (await f.stat()).modified.millisecondsSinceEpoch;
+        if (await _copyToInbox(f, dir, ms, idSeed: path)) n++;
+      } on FileSystemException {
+        // Unreadable (access refused or vanished): skip it.
+      }
+    }
+    if (n > 0) _shared.add(null);
+    return n;
+  }
+
   @override
-  Stream<void> get sharedIn => const Stream.empty();
+  Future<List<IncomingShot>> drainShared() async {
+    final dir = await _sharedDir();
+    if (!await dir.exists()) return const [];
+    return _listShots(dir);
+  }
+
+  @override
+  Future<void> ackShared(List<String> paths) => ack(paths);
+  @override
+  Stream<void> get sharedIn => _shared.stream;
 
   Future<void> dispose() async {
     await stop();
     await _captured.close();
+    await _shared.close();
   }
 
   // ---- helpers ----------------------------------------------------------
@@ -444,6 +492,10 @@ Future<Directory> _systemScreenshotDir() async {
   }
   return Directory(p.join(home, 'Desktop'));
 }
+
+Future<Directory> _defaultSharedDir() async => Directory(
+  p.join((await getApplicationSupportDirectory()).path, 'fluo', 'shared'),
+);
 
 Future<Directory> _defaultInboxDir() async => Directory(
   p.join((await getApplicationSupportDirectory()).path, 'fluo', 'inbox'),

@@ -63,6 +63,15 @@ class CaptureController extends ChangeNotifier {
   bool get canChooseFolder => _source.canChooseFolder;
   bool get customFolder => _source.customFolder;
 
+  bool get canImportFiles => _source.canImportFiles;
+
+  /// Images dropped on the window. They wait for an album, like shares.
+  Future<int> importFiles(List<String> paths) async {
+    final n = await _source.importFiles(paths);
+    if (n > 0 && !_disposed) sharedArrived.value++;
+    return n;
+  }
+
   /// Lets the user pick the screenshot folder, then watches that one.
   Future<void> chooseFolder() async {
     if (!await _source.chooseFolder()) return;

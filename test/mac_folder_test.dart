@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fluo/capture/capture_controller.dart';
 import 'package:fluo/capture/capture_source.dart';
 import 'package:fluo/capture/folder_access.dart';
 import 'package:fluo/capture/mac_capture_source.dart';
@@ -190,6 +191,76 @@ void main() {
     });
   });
 
+  group('dropped files', () {
+    late Directory tmp;
+    late Directory shared;
+    late MacCaptureSource src;
+    setUp(() {
+      tmp = Directory.systemTemp.createTempSync('fluo_drop_');
+      shared = Directory(p.join(tmp.path, 'shared'));
+      src = MacCaptureSource(
+        screenshotDir: () async => Directory(p.join(tmp.path, 'Desktop')),
+        inboxDir: () async => Directory(p.join(tmp.path, 'inbox')),
+        sharedDir: () async => shared,
+        folderAccess: FakeFolderAccess(),
+      );
+    });
+    tearDown(() async {
+      await src.dispose();
+      tmp.deleteSync(recursive: true);
+    });
+
+    File img(String name, [List<int>? bytes]) => File(p.join(tmp.path, name))
+      ..writeAsBytesSync(bytes ?? pngHeader(50, 80));
+
+    test('copies images, skips other files, and waits for an album', () async {
+      expect(src.canImportFiles, isTrue);
+      final fired = <void>[];
+      src.sharedIn.listen(fired.add);
+      final n = await src.importFiles([
+        img('a.png').path,
+        img('b.JPG').path,
+        File(p.join(tmp.path, 'notes.txt')).path,
+        p.join(tmp.path, 'missing.png'),
+        img('doc.pdf').path,
+      ]);
+      expect(n, 2);
+      await Future<void>.delayed(Duration.zero);
+      expect(fired, hasLength(1));
+      final got = await src.drainShared();
+      expect(got, hasLength(2));
+      expect(got.any((s) => s.width == 50 && s.height == 80), isTrue);
+      // Dropped files are copies: the originals are untouched, and the
+      // session inbox is separate.
+      expect(File(p.join(tmp.path, 'a.png')).existsSync(), isTrue);
+      expect(await src.drain(), isEmpty);
+      await src.ackShared([for (final s in got) s.path]);
+      expect(await src.drainShared(), isEmpty);
+    });
+
+    test('dropping the same file twice adds it once', () async {
+      final f = img('a.png');
+      await src.importFiles([f.path]);
+      await src.importFiles([f.path]);
+      expect(await src.drainShared(), hasLength(1));
+    });
+
+    test('nothing importable means no event', () async {
+      var fired = 0;
+      src.sharedIn.listen((_) => fired++);
+      expect(await src.importFiles([img('x.txt').path]), 0);
+      await Future<void>.delayed(Duration.zero);
+      expect(fired, 0);
+      expect(await src.drainShared(), isEmpty);
+    });
+
+    test('the phone and no-capture sources cannot import', () async {
+      expect(NoCaptureSource().canImportFiles, isFalse);
+      expect(await NoCaptureSource().importFiles(['a.png']), 0);
+      expect(AndroidCaptureSource().canImportFiles, isFalse);
+    });
+  });
+
   group('MacFolderAccess channel', () {
     const ch = MethodChannel('test/folder');
     tearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -218,6 +289,21 @@ void main() {
       mock((c) async => throw PlatformException(code: 'bookmark'));
       expect(await a.open('B'), isNull);
       expect(await a.pick(), isNull);
+    });
+  });
+
+  group('controller drop', () {
+    testWidgets('a drop bumps sharedArrived only when files were taken', (t) async {
+      final repo = memRepo();
+      final src = FakeSource()..canImportFiles = true;
+      final c = CaptureController(repo, src);
+      addTearDown(c.dispose);
+      expect(c.canImportFiles, isTrue);
+      expect(await c.importFiles(['a.png', 'b.png']), 2);
+      expect(c.sharedArrived.value, 1);
+      expect(src.imported, ['a.png', 'b.png']);
+      expect(await c.importFiles([]), 0);
+      expect(c.sharedArrived.value, 1);
     });
   });
 

@@ -12,11 +12,13 @@ import FlutterMacOS
 ///                         old one was stale); a FlutterError when it cannot
 ///                         be resolved or access is refused
 ///  - `close`           -> stops the current security-scoped access
-final class FolderChannel {
+final class FolderChannel: NSObject {
   private var scoped: URL?
+  private let channel: FlutterMethodChannel
 
   init(messenger: FlutterBinaryMessenger) {
-    let channel = FlutterMethodChannel(name: "app.fluo/folder", binaryMessenger: messenger)
+    channel = FlutterMethodChannel(name: "app.fluo/folder", binaryMessenger: messenger)
+    super.init()
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self = self else { return result(nil) }
       self.handle(call, result)
@@ -39,6 +41,29 @@ final class FolderChannel {
       result(FlutterMethodNotImplemented)
     }
   }
+
+  /// A "Capture" menu next to Window: the same two actions as the session
+  /// card, for people who live in the menu bar. Dart does the work.
+  func installMenu() {
+    guard let main = NSApp.mainMenu else { return }
+    let menu = NSMenu(title: "Capture")
+    let choose = NSMenuItem(
+      title: "Choose Screenshot Folder…", action: #selector(menuChoose), keyEquivalent: "o")
+    choose.keyEquivalentModifierMask = [.command, .shift]
+    choose.target = self
+    let reset = NSMenuItem(
+      title: "Use Default Screenshot Folder", action: #selector(menuReset), keyEquivalent: "")
+    reset.target = self
+    menu.addItem(choose)
+    menu.addItem(reset)
+    let item = NSMenuItem(title: "Capture", action: nil, keyEquivalent: "")
+    item.submenu = menu
+    // Before Window and Help, after Edit and View.
+    main.insertItem(item, at: max(1, main.items.count - 2))
+  }
+
+  @objc private func menuChoose() { channel.invokeMethod("menu", arguments: "chooseFolder") }
+  @objc private func menuReset() { channel.invokeMethod("menu", arguments: "useDefaultFolder") }
 
   private func release() {
     scoped?.stopAccessingSecurityScopedResource()

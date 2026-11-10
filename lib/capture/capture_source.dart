@@ -125,6 +125,13 @@ abstract class CaptureSource {
 
   /// Goes back to the system screenshot folder.
   Future<void> useDefaultFolder();
+
+  /// Whether images can be dropped on the window (desktop only).
+  bool get canImportFiles;
+
+  /// Copies dropped image files into the shared inbox. Returns how many were
+  /// taken; they then wait for an album like shares do.
+  Future<int> importFiles(List<String> paths);
   Future<CapturePermission> permission();
   Future<CapturePermission> requestPermission();
   Future<void> openSettings();
@@ -164,6 +171,10 @@ class NoCaptureSource implements CaptureSource {
   Future<bool> chooseFolder() async => false;
   @override
   Future<void> useDefaultFolder() async {}
+  @override
+  bool get canImportFiles => false;
+  @override
+  Future<int> importFiles(List<String> paths) async => 0;
   @override
   Future<CapturePermission> permission() async => CapturePermission.unsupported;
   @override
@@ -213,6 +224,10 @@ class AndroidCaptureSource implements CaptureSource {
   Future<bool> chooseFolder() async => false;
   @override
   Future<void> useDefaultFolder() async {}
+  @override
+  bool get canImportFiles => false;
+  @override
+  Future<int> importFiles(List<String> paths) async => 0;
 
   static CapturePermission _parse(String? s) => switch (s) {
         'granted' => CapturePermission.granted,
