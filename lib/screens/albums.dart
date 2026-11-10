@@ -152,6 +152,10 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                         status: capture.status,
                         copy: capture.copy,
                         folder: capture.watchedFolder,
+                        canChooseFolder: capture.canChooseFolder,
+                        customFolder: capture.customFolder,
+                        onChooseFolder: capture.chooseFolder,
+                        onUseDefaultFolder: capture.useDefaultFolder,
                         onReview: () =>
                             _push(TriageScreen(albumId: sessionAlbum.album.id)),
                         onPause: capture.pause,
@@ -202,6 +206,10 @@ class _SessionCard extends StatelessWidget {
     required this.status,
     required this.copy,
     required this.folder,
+    required this.canChooseFolder,
+    required this.customFolder,
+    required this.onChooseFolder,
+    required this.onUseDefaultFolder,
     required this.onReview,
     required this.onPause,
     required this.onResume,
@@ -212,6 +220,10 @@ class _SessionCard extends StatelessWidget {
   final CaptureStatus status;
   final CaptureCopy copy;
   final String? folder;
+  final bool canChooseFolder;
+  final bool customFolder;
+  final VoidCallback onChooseFolder;
+  final VoidCallback onUseDefaultFolder;
   final VoidCallback onReview;
   final VoidCallback onPause;
   final VoidCallback onResume;
@@ -334,6 +346,30 @@ class _SessionCard extends StatelessWidget {
                     ],
                   ],
                 ),
+              if (canChooseFolder && status != CaptureStatus.off) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FluoButton(
+                        label: customFolder ? 'Change folder' : 'Choose folder',
+                        expand: true,
+                        onPressed: onChooseFolder,
+                      ),
+                    ),
+                    if (customFolder) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FluoButton(
+                          label: 'Use default',
+                          expand: true,
+                          onPressed: onUseDefaultFolder,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ],
           ),
         ),

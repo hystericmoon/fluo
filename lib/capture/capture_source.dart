@@ -111,6 +111,20 @@ abstract class CaptureSource {
   /// Short name of the folder being watched ("Desktop"), or null when capture
   /// is not folder based (the phone) or it is not known yet.
   String? get watchedFolder;
+
+  /// Whether the user can pick which folder is watched (macOS only).
+  bool get canChooseFolder;
+
+  /// True when the watched folder was picked by the user, not the system
+  /// default.
+  bool get customFolder;
+
+  /// Shows the folder picker and remembers the choice. False if cancelled.
+  /// The caller restarts the watch.
+  Future<bool> chooseFolder();
+
+  /// Goes back to the system screenshot folder.
+  Future<void> useDefaultFolder();
   Future<CapturePermission> permission();
   Future<CapturePermission> requestPermission();
   Future<void> openSettings();
@@ -142,6 +156,14 @@ class NoCaptureSource implements CaptureSource {
   CaptureCopy get copy => CaptureCopy.phone;
   @override
   String? get watchedFolder => null;
+  @override
+  bool get canChooseFolder => false;
+  @override
+  bool get customFolder => false;
+  @override
+  Future<bool> chooseFolder() async => false;
+  @override
+  Future<void> useDefaultFolder() async {}
   @override
   Future<CapturePermission> permission() async => CapturePermission.unsupported;
   @override
@@ -183,6 +205,14 @@ class AndroidCaptureSource implements CaptureSource {
   CaptureCopy get copy => CaptureCopy.phone;
   @override
   String? get watchedFolder => null;
+  @override
+  bool get canChooseFolder => false;
+  @override
+  bool get customFolder => false;
+  @override
+  Future<bool> chooseFolder() async => false;
+  @override
+  Future<void> useDefaultFolder() async {}
 
   static CapturePermission _parse(String? s) => switch (s) {
         'granted' => CapturePermission.granted,

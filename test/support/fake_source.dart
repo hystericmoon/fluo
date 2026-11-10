@@ -8,6 +8,28 @@ class FakeSource implements CaptureSource {
   CaptureCopy copy;
   @override
   String? watchedFolder;
+  @override
+  bool canChooseFolder = false;
+  @override
+  bool customFolder = false;
+  int folderChoices = 0, folderResets = 0;
+  bool pickResult = true;
+  @override
+  Future<bool> chooseFolder() async {
+    folderChoices++;
+    if (pickResult) {
+      customFolder = true;
+      watchedFolder = 'Shots';
+    }
+    return pickResult;
+  }
+
+  @override
+  Future<void> useDefaultFolder() async {
+    folderResets++;
+    customFolder = false;
+    watchedFolder = 'Desktop';
+  }
 
   FakeSource({
     this.perm = CapturePermission.granted,

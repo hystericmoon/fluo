@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -6,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'capture_source.dart';
+import 'folder_access.dart';
 
 /// Screenshot capture for macOS, in plain Dart.
 ///
@@ -22,16 +24,19 @@ class MacCaptureSource implements CaptureSource {
     Future<Directory> Function()? screenshotDir,
     Future<Directory> Function()? inboxDir,
     Future<void> Function()? openSystemSettings,
+    FolderAccess? folderAccess,
     this.pollInterval = const Duration(seconds: 2),
     DateTime Function()? now,
   }) : _screenshotDir = screenshotDir ?? _systemScreenshotDir,
        _inboxDir = inboxDir ?? _defaultInboxDir,
        _openSystemSettings = openSystemSettings ?? _openPrivacySettings,
+       _access = folderAccess ?? MacFolderAccess(),
        _now = now ?? DateTime.now;
 
   final Future<Directory> Function() _screenshotDir;
   final Future<Directory> Function() _inboxDir;
   final Future<void> Function() _openSystemSettings;
+  final FolderAccess _access;
   final Duration pollInterval;
   final DateTime Function() _now;
 
@@ -53,7 +58,90 @@ class MacCaptureSource implements CaptureSource {
   @override
   String? get watchedFolder => _folderName;
 
-  Future<Directory> _resolveDir() async {
+  // ---- folder choice ----------------------------------------------------
+  //
+  // Under the sandbox only ~/Desktop is readable. A folder the user picks in
+  // the open panel is readable too, and a security-scoped bookmark, saved in
+  // `capture_folder.json` beside the inbox, brings that access back after a
+  // restart.
+
+  @override
+  bool get canChooseFolder => true;
+  @override
+  bool get customFolder => _custom != null;
+
+  /// The folder the user picked, once its access is open this run.
+  Directory? _custom;
+  bool _customLoaded = false;
+
+  Future<File> _choiceFile() async =>
+      File(p.join((await _inboxDir()).parent.path, 'capture_folder.json'));
+
+  Future<void> _saveChoice(String path, String bookmark) async {
+    final f = await _choiceFile();
+    await f.parent.create(recursive: true);
+    await f.writeAsString(jsonEncode({'path': path, 'bookmark': bookmark}));
+  }
+
+  /// Opens the stored choice, if any. Null means no choice or it cannot be
+  /// opened; [_choiceBroken] tells the two apart.
+  bool _choiceBroken = false;
+  Future<void> _loadChoice() async {
+    if (_customLoaded) return;
+    final f = await _choiceFile();
+    if (!await f.exists()) {
+      _customLoaded = true;
+      return;
+    }
+    try {
+      final m = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
+      final opened = await _access.open(m['bookmark'] as String);
+      if (opened == null) {
+        _choiceBroken = true;
+      } else {
+        if (opened.bookmark != null) await _saveChoice(opened.path, opened.bookmark!);
+        _custom = Directory(opened.path);
+        _folderName = p.basename(opened.path);
+      }
+    } on FormatException {
+      _choiceBroken = true;
+    } on TypeError {
+      _choiceBroken = true;
+    }
+    _customLoaded = true;
+  }
+
+  @override
+  Future<bool> chooseFolder() async {
+    final picked = await _access.pick();
+    if (picked == null) return false;
+    await _saveChoice(picked.path, picked.bookmark);
+    _custom = Directory(picked.path);
+    _customLoaded = true;
+    _choiceBroken = false;
+    _folderName = p.basename(picked.path);
+    _seen.clear();
+    return true;
+  }
+
+  @override
+  Future<void> useDefaultFolder() async {
+    final f = await _choiceFile();
+    if (await f.exists()) await f.delete();
+    await _access.close();
+    _custom = null;
+    _customLoaded = true;
+    _choiceBroken = false;
+    _folderName = null;
+    _seen.clear();
+  }
+
+  /// The folder to watch, or null when a chosen folder cannot be opened any
+  /// more (moved, deleted, or the bookmark was revoked).
+  Future<Directory?> _resolveDir() async {
+    await _loadChoice();
+    if (_choiceBroken) return null;
+    if (_custom != null) return _custom;
     final dir = await _screenshotDir();
     _folderName = p.basename(dir.path);
     return dir;
@@ -68,19 +156,33 @@ class MacCaptureSource implements CaptureSource {
   Future<CapturePermission> permission() async {
     try {
       final dir = await _resolveDir();
+      if (dir == null) return CapturePermission.denied; // chosen folder lost
       if (!await dir.exists()) return CapturePermission.granted;
       await dir.list().isEmpty;
       return CapturePermission.granted;
     } on FileSystemException catch (e) {
       final code = e.osError?.errorCode;
-      // 1 = EPERM, 13 = EACCES: macOS refused. It never asks twice.
-      if (code == 1 || code == 13) return CapturePermission.permanentlyDenied;
+      // 1 = EPERM, 13 = EACCES: macOS refused. Only the user's own pick can
+      // fix a default folder outside ~/Desktop, so that case asks for a pick
+      // (denied); a picked folder that is refused needs System Settings.
+      if (code == 1 || code == 13) {
+        return customFolder
+            ? CapturePermission.permanentlyDenied
+            : CapturePermission.denied;
+      }
       return CapturePermission.denied;
     }
   }
 
+  /// "Allow folder access": when the folder cannot be read, ask the user to
+  /// pick it (the sandbox then grants it).
   @override
-  Future<CapturePermission> requestPermission() => permission();
+  Future<CapturePermission> requestPermission() async {
+    final p0 = await permission();
+    if (p0 != CapturePermission.denied) return p0;
+    if (!await chooseFolder()) return p0;
+    return permission();
+  }
 
   @override
   Future<void> openSettings() => _openSystemSettings();
@@ -97,6 +199,9 @@ class MacCaptureSource implements CaptureSource {
       await cursor.writeAsString('${_now().millisecondsSinceEpoch}');
     }
     final dir = await _resolveDir();
+    if (dir == null) {
+      throw const FileSystemException('The chosen screenshot folder is gone');
+    }
     try {
       _fsSub = dir.watch().listen((_) => _scan(), onError: (_) {});
     } on FileSystemException {
@@ -139,7 +244,7 @@ class MacCaptureSource implements CaptureSource {
 
   Future<bool> _scanOnce() async {
     final dir = await _resolveDir();
-    if (!await dir.exists()) return false;
+    if (dir == null || !await dir.exists()) return false;
     final inbox = await _inboxDir();
     final cursorFile = File(p.join(inbox.parent.path, 'capture_cursor'));
     if (!await cursorFile.exists()) return false;

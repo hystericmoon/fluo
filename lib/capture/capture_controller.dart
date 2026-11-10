@@ -60,6 +60,24 @@ class CaptureController extends ChangeNotifier {
 
   /// The folder being watched, for the session card (null on the phone).
   String? get watchedFolder => _source.watchedFolder;
+  bool get canChooseFolder => _source.canChooseFolder;
+  bool get customFolder => _source.customFolder;
+
+  /// Lets the user pick the screenshot folder, then watches that one.
+  Future<void> chooseFolder() async {
+    if (!await _source.chooseFolder()) return;
+    await _source.stop(); // drops the old folder's cursor: nothing old is imported
+    await sync();
+    if (!_disposed) notifyListeners();
+  }
+
+  /// Back to the system screenshot folder.
+  Future<void> useDefaultFolder() async {
+    await _source.useDefaultFolder();
+    await _source.stop();
+    await sync();
+    if (!_disposed) notifyListeners();
+  }
 
   ReviewSession? get session => _repo.activeSession();
 
