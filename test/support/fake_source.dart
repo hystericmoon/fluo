@@ -4,7 +4,48 @@ import 'package:fluo/capture/capture_source.dart';
 
 /// In-memory stand-in for the platform side of capture.
 class FakeSource implements CaptureSource {
-  FakeSource({this.perm = CapturePermission.granted, this.isSupported = true});
+  @override
+  CaptureCopy copy;
+  @override
+  String? watchedFolder;
+  @override
+  bool canImportFiles = false;
+  final imported = <String>[];
+  @override
+  Future<int> importFiles(List<String> paths) async {
+    imported.addAll(paths);
+    return paths.length;
+  }
+
+  @override
+  bool canChooseFolder = false;
+  @override
+  bool customFolder = false;
+  int folderChoices = 0, folderResets = 0;
+  bool pickResult = true;
+  @override
+  Future<bool> chooseFolder() async {
+    folderChoices++;
+    if (pickResult) {
+      customFolder = true;
+      watchedFolder = 'Shots';
+    }
+    return pickResult;
+  }
+
+  @override
+  Future<void> useDefaultFolder() async {
+    folderResets++;
+    customFolder = false;
+    watchedFolder = 'Desktop';
+  }
+
+  FakeSource({
+    this.perm = CapturePermission.granted,
+    this.isSupported = true,
+    this.copy = CaptureCopy.phone,
+    this.watchedFolder,
+  });
   CapturePermission perm;
   CapturePermission afterRequest = CapturePermission.granted;
   final bool isSupported;

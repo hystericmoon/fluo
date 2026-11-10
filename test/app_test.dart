@@ -123,6 +123,21 @@ void main() {
       return src;
     }
 
+    testWidgets('Mac card names the watched folder', (tester) async {
+      await startAlbum(
+        tester,
+        FakeSource(copy: CaptureCopy.mac, watchedFolder: 'Desktop'),
+      );
+      expect(find.textContaining('Watching Desktop.'), findsOneWidget);
+      expect(find.textContaining('clipboard'), findsOneWidget);
+    });
+
+    testWidgets('phone card keeps its Android wording', (tester) async {
+      await startAlbum(tester, FakeSource(watchedFolder: 'Desktop'));
+      expect(find.text(CaptureCopy.phone.watching), findsOneWidget);
+      expect(find.textContaining('Watching Desktop'), findsNothing);
+    });
+
     testWidgets('watching: Pause then Resume', (tester) async {
       final src = await startAlbum(tester, FakeSource());
       expect(find.text('Session on'), findsOneWidget);

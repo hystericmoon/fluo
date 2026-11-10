@@ -1,5 +1,6 @@
 import 'dart:io' show Directory, Platform;
 
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
@@ -12,6 +13,7 @@ import 'data/repository.dart';
 import 'data/storage.dart';
 import 'export/export_scope.dart';
 import 'export/export_service.dart';
+import 'capture/mac_capture_source.dart';
 import 'motion/motion.dart';
 import 'screens/albums.dart';
 import 'screens/splash.dart';
@@ -19,6 +21,8 @@ import 'settings/app_settings.dart';
 import 'settings/settings_scope.dart';
 import 'theme/accent.dart';
 import 'theme/app_theme.dart';
+import 'theme/tokens.dart';
+import 'ui/file_drop_zone.dart';
 import 'ui/shared_intake.dart';
 import 'update/update_controller.dart';
 import 'update/update_scope.dart';
@@ -30,7 +34,11 @@ Future<void> main() async {
   final android = Platform.isAndroid;
   runApp(FluoApp(
     repo: repo,
-    source: android ? AndroidCaptureSource() : NoCaptureSource(),
+    source: android
+        ? AndroidCaptureSource()
+        : Platform.isMacOS
+            ? MacCaptureSource()
+            : NoCaptureSource(),
     exports: appExportServices(),
     updateSource: android ? const PlayUpdateSource() : const NoUpdateSource(),
     network: android ? const AndroidNetworkInfo() : const NoNetworkInfo(),
@@ -93,6 +101,14 @@ class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
     // Earlier exports hold copies of screenshots: do not keep them around.
     ExportService(widget.repo, widget.exports).clearWorkDir().catchError((Object _) {});
     _capture.sync(); // picks a stored session back up and imports waiting shots
+    if (widget.source.canChooseFolder) {
+      // The native Capture menu (macOS) asks Dart to do what the card does.
+      const MethodChannel('app.fluo/folder').setMethodCallHandler((call) async {
+        if (call.method != 'menu') return;
+        if (call.arguments == 'chooseFolder') await _capture.chooseFolder();
+        if (call.arguments == 'useDefaultFolder') await _capture.useDefaultFolder();
+      });
+    }
     _updates.autoCheck(); // if auto-update is on and it has been a while
   }
 
@@ -135,9 +151,24 @@ class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
                       title: 'Fluo',
                       debugShowCheckedModeBanner: false,
                       theme: fluoTheme(accent: _settings.accent),
+                      // A phone layout, kept readable in a wide desktop window.
+                      builder: widget.source.canChooseFolder
+                          ? (context, child) => ColoredBox(
+                              color: FluoColors.bg,
+                              child: Align(
+                                alignment: Alignment.topCenter,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 720),
+                                  child: child,
+                                ),
+                              ),
+                            )
+                          : null,
                       home: _showSplash
                           ? const SplashScreen()
-                          : const SharedIntake(child: AlbumsScreen()),
+                          : const FileDropZone(
+                              child: SharedIntake(child: AlbumsScreen()),
+                            ),
                     ),
                   ),
                 ),
