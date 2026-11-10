@@ -2,6 +2,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../capture/capture_controller.dart';
 import '../capture/capture_scope.dart';
+import '../capture/capture_source.dart';
 import '../data/format.dart';
 import '../data/models.dart' show AlbumSummary;
 import '../motion/fuse.dart';
@@ -149,6 +150,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                         albumName: sessionAlbum.album.name,
                         newCount: sessionAlbum.pendingCount,
                         status: capture.status,
+                        copy: capture.copy,
                         onReview: () =>
                             _push(TriageScreen(albumId: sessionAlbum.album.id)),
                         onPause: capture.pause,
@@ -197,6 +199,7 @@ class _SessionCard extends StatelessWidget {
     required this.albumName,
     required this.newCount,
     required this.status,
+    required this.copy,
     required this.onReview,
     required this.onPause,
     required this.onResume,
@@ -205,6 +208,7 @@ class _SessionCard extends StatelessWidget {
   final String albumName;
   final int newCount;
   final CaptureStatus status;
+  final CaptureCopy copy;
   final VoidCallback onReview;
   final VoidCallback onPause;
   final VoidCallback onResume;
@@ -226,23 +230,21 @@ class _SessionCard extends StatelessWidget {
       CaptureStatus.failed => (FluoColors.ux, 'Could not start'),
       // Before the first check has finished: neutral, not a false warning.
       CaptureStatus.off => (FluoColors.fgMuted, 'Session'),
-      _ => (FluoColors.ux, 'Needs photo access'),
+      _ => (FluoColors.ux, copy.accessLabel),
     };
     final detail = switch (status) {
-      CaptureStatus.watching =>
-          'New screenshots land here automatically. Missed one? Share it to Fluo from your gallery.',
-      CaptureStatus.off => 'Checking photo access…',
+      CaptureStatus.watching => copy.watching,
+      CaptureStatus.off => copy.checking,
       CaptureStatus.paused => 'Screenshots are not being picked up',
-      CaptureStatus.needsPermission => 'Allow photo access so Fluo can see new screenshots. Your photos stay on this phone.',
-      CaptureStatus.needsSettings => 'Photo access is off. Turn it on in Settings so Fluo can see new screenshots.',
-      CaptureStatus.limitedAccess => 'Fluo can only see the photos you picked, so it would miss new screenshots. Allow all photos in Settings.',
-      CaptureStatus.failed =>
-        'Fluo could not start watching for screenshots. Try again, or share a screenshot to Fluo from your gallery and pick an album.',
+      CaptureStatus.needsPermission => copy.needsPermission,
+      CaptureStatus.needsSettings => copy.needsSettings,
+      CaptureStatus.limitedAccess => copy.limited,
+      CaptureStatus.failed => copy.failed,
       CaptureStatus.unsupported =>
         'Screenshot detection is not available on this device yet',
     };
     final fixLabel = switch (status) {
-      CaptureStatus.needsPermission => 'Allow photo access',
+      CaptureStatus.needsPermission => copy.allowLabel,
       CaptureStatus.failed => 'Try again',
       _ => 'Open Settings',
     };

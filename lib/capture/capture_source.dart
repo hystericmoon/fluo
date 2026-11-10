@@ -14,6 +14,58 @@ enum CapturePermission {
   unsupported,
 }
 
+/// Words the session card uses, which depend on where capture happens
+/// ("photos on this phone" versus "the Desktop folder on this Mac").
+class CaptureCopy {
+  const CaptureCopy({
+    required this.accessLabel,
+    required this.watching,
+    required this.checking,
+    required this.needsPermission,
+    required this.needsSettings,
+    required this.limited,
+    required this.failed,
+    required this.allowLabel,
+  });
+
+  /// Status line when access is missing.
+  final String accessLabel;
+  final String watching;
+  final String checking;
+  final String needsPermission;
+  final String needsSettings;
+  final String limited;
+  final String failed;
+
+  /// Button that raises the system permission prompt.
+  final String allowLabel;
+
+  static const phone = CaptureCopy(
+    accessLabel: 'Needs photo access',
+    watching: 'New screenshots land here automatically. Missed one? Share it to Fluo from your gallery.',
+    checking: 'Checking photo access…',
+    needsPermission: 'Allow photo access so Fluo can see new screenshots. Your photos stay on this phone.',
+    needsSettings: 'Photo access is off. Turn it on in Settings so Fluo can see new screenshots.',
+    limited: 'Fluo can only see the photos you picked, so it would miss new screenshots. Allow all photos in Settings.',
+    failed:
+        'Fluo could not start watching for screenshots. Try again, or share a screenshot to Fluo from your gallery and pick an album.',
+    allowLabel: 'Allow photo access',
+  );
+
+  static const mac = CaptureCopy(
+    accessLabel: 'Needs folder access',
+    watching: 'New screenshots land here automatically.',
+    checking: 'Checking folder access…',
+    needsPermission:
+        'Allow Fluo to read the folder your screenshots are saved to, so it can see new ones. They stay on this Mac.',
+    needsSettings:
+        'Folder access is off. Turn it on in System Settings > Privacy & Security > Files & Folders so Fluo can see new screenshots.',
+    limited: 'Fluo cannot see all of your screenshot folder. Allow access in System Settings.',
+    failed: 'Fluo could not start watching for screenshots. Try again.',
+    allowLabel: 'Allow folder access',
+  );
+}
+
 /// A screenshot the platform copied into the app's private inbox.
 class IncomingShot {
   const IncomingShot({
@@ -36,6 +88,9 @@ class IncomingShot {
 /// has stored, so a screenshot is never lost between the two.
 abstract class CaptureSource {
   bool get supported;
+
+  /// Wording for the session card.
+  CaptureCopy get copy;
   Future<CapturePermission> permission();
   Future<CapturePermission> requestPermission();
   Future<void> openSettings();
@@ -63,6 +118,8 @@ abstract class CaptureSource {
 class NoCaptureSource implements CaptureSource {
   @override
   bool get supported => false;
+  @override
+  CaptureCopy get copy => CaptureCopy.phone;
   @override
   Future<CapturePermission> permission() async => CapturePermission.unsupported;
   @override
@@ -100,6 +157,8 @@ class AndroidCaptureSource implements CaptureSource {
 
   @override
   bool get supported => true;
+  @override
+  CaptureCopy get copy => CaptureCopy.phone;
 
   static CapturePermission _parse(String? s) => switch (s) {
         'granted' => CapturePermission.granted,

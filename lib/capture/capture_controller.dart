@@ -55,6 +55,9 @@ class CaptureController extends ChangeNotifier {
   bool _again = false;
   bool _disposed = false;
 
+  /// Wording that fits the platform's capture.
+  CaptureCopy get copy => _source.copy;
+
   ReviewSession? get session => _repo.activeSession();
 
   void _set(CaptureStatus s) {

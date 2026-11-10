@@ -19,6 +19,7 @@ Uint8List pngHeader(int w, int h) {
 }
 
 void main() {
+  macCopyTests();
   group('MacScreenshotFilter', () {
     test('accepts macOS screenshot names, old and localised', () {
       for (final n in [
@@ -234,6 +235,33 @@ void main() {
       await s.openSettings();
       expect(opened, 1);
       await s.dispose();
+    });
+  });
+}
+
+void macCopyTests() {
+  group('CaptureCopy', () {
+    test('the Mac wording never mentions phones, photos or a gallery', () {
+      final c = CaptureCopy.mac;
+      for (final t in [
+        c.accessLabel,
+        c.watching,
+        c.checking,
+        c.needsPermission,
+        c.needsSettings,
+        c.limited,
+        c.failed,
+        c.allowLabel,
+      ]) {
+        expect(t.toLowerCase(), isNot(contains('phone')), reason: t);
+        expect(t.toLowerCase(), isNot(contains('photo')), reason: t);
+        expect(t.toLowerCase(), isNot(contains('gallery')), reason: t);
+      }
+    });
+
+    test('each source picks its own wording', () {
+      expect(MacCaptureSource().copy, same(CaptureCopy.mac));
+      expect(NoCaptureSource().copy, same(CaptureCopy.phone));
     });
   });
 }

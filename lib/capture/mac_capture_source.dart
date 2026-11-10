@@ -46,6 +46,8 @@ class MacCaptureSource implements CaptureSource {
 
   @override
   bool get supported => true;
+  @override
+  CaptureCopy get copy => CaptureCopy.mac;
 
   // ---- permission -------------------------------------------------------
 
