@@ -12,6 +12,7 @@ import 'data/repository.dart';
 import 'data/storage.dart';
 import 'export/export_scope.dart';
 import 'export/export_service.dart';
+import 'capture/mac_capture_source.dart';
 import 'motion/motion.dart';
 import 'screens/albums.dart';
 import 'screens/splash.dart';
@@ -30,7 +31,11 @@ Future<void> main() async {
   final android = Platform.isAndroid;
   runApp(FluoApp(
     repo: repo,
-    source: android ? AndroidCaptureSource() : NoCaptureSource(),
+    source: android
+        ? AndroidCaptureSource()
+        : Platform.isMacOS
+            ? MacCaptureSource()
+            : NoCaptureSource(),
     exports: appExportServices(),
     updateSource: android ? const PlayUpdateSource() : const NoUpdateSource(),
     network: android ? const AndroidNetworkInfo() : const NoNetworkInfo(),
