@@ -26,7 +26,12 @@ class CaptureCopy {
     required this.limited,
     required this.failed,
     required this.allowLabel,
+    this.watchingIn,
   });
+
+  /// Status line while watching, once the watched folder is known. Null where
+  /// there is no folder to name (the phone).
+  final String Function(String folder)? watchingIn;
 
   /// Status line when access is missing.
   final String accessLabel;
@@ -63,7 +68,18 @@ class CaptureCopy {
     limited: 'Fluo cannot see all of your screenshot folder. Allow access in System Settings.',
     failed: 'Fluo could not start watching for screenshots. Try again.',
     allowLabel: 'Allow folder access',
+    watchingIn: _macWatchingIn,
   );
+
+  static String _macWatchingIn(String folder) =>
+      'Watching $folder. New screenshots land here automatically. One copied '
+      'to the clipboard or saved somewhere else will not show up.';
+
+  /// The detail line while watching, naming [folder] when there is one.
+  String watchingText(String? folder) {
+    final f = watchingIn;
+    return (f != null && folder != null && folder.isNotEmpty) ? f(folder) : watching;
+  }
 }
 
 /// A screenshot the platform copied into the app's private inbox.
@@ -91,6 +107,10 @@ abstract class CaptureSource {
 
   /// Wording for the session card.
   CaptureCopy get copy;
+
+  /// Short name of the folder being watched ("Desktop"), or null when capture
+  /// is not folder based (the phone) or it is not known yet.
+  String? get watchedFolder;
   Future<CapturePermission> permission();
   Future<CapturePermission> requestPermission();
   Future<void> openSettings();
@@ -120,6 +140,8 @@ class NoCaptureSource implements CaptureSource {
   bool get supported => false;
   @override
   CaptureCopy get copy => CaptureCopy.phone;
+  @override
+  String? get watchedFolder => null;
   @override
   Future<CapturePermission> permission() async => CapturePermission.unsupported;
   @override
@@ -159,6 +181,8 @@ class AndroidCaptureSource implements CaptureSource {
   bool get supported => true;
   @override
   CaptureCopy get copy => CaptureCopy.phone;
+  @override
+  String? get watchedFolder => null;
 
   static CapturePermission _parse(String? s) => switch (s) {
         'granted' => CapturePermission.granted,

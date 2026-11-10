@@ -78,6 +78,12 @@ void main() {
       tmp.deleteSync(recursive: true);
     });
 
+    test('names the watched folder once it has looked at it', () async {
+      expect(src.watchedFolder, isNull);
+      await src.permission();
+      expect(src.watchedFolder, 'Desktop');
+    });
+
     Future<void> until(Future<bool> Function() ok) async {
       for (var i = 0; i < 100; i++) {
         if (await ok()) return;
@@ -256,6 +262,24 @@ void macCopyTests() {
         expect(t.toLowerCase(), isNot(contains('phone')), reason: t);
         expect(t.toLowerCase(), isNot(contains('photo')), reason: t);
         expect(t.toLowerCase(), isNot(contains('gallery')), reason: t);
+      }
+    });
+
+    test('Mac watching text names the folder; the phone text never changes', () {
+      final t = CaptureCopy.mac.watchingText('Desktop');
+      expect(t, startsWith('Watching Desktop.'));
+      expect(t, contains('clipboard'));
+      expect(CaptureCopy.mac.watchingText(null), CaptureCopy.mac.watching);
+      expect(CaptureCopy.mac.watchingText(''), CaptureCopy.mac.watching);
+      expect(CaptureCopy.phone.watchingText('Desktop'), CaptureCopy.phone.watching);
+      expect(
+        CaptureCopy.phone.watching,
+        'New screenshots land here automatically. Missed one? Share it to Fluo from your gallery.',
+      );
+      for (final s in [t]) {
+        for (final w in ['phone', 'photo', 'gallery']) {
+          expect(s.toLowerCase(), isNot(contains(w)));
+        }
       }
     });
 

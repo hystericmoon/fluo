@@ -5,9 +5,16 @@ import 'package:fluo/capture/capture_source.dart';
 /// In-memory stand-in for the platform side of capture.
 class FakeSource implements CaptureSource {
   @override
-  CaptureCopy get copy => CaptureCopy.phone;
+  CaptureCopy copy;
+  @override
+  String? watchedFolder;
 
-  FakeSource({this.perm = CapturePermission.granted, this.isSupported = true});
+  FakeSource({
+    this.perm = CapturePermission.granted,
+    this.isSupported = true,
+    this.copy = CaptureCopy.phone,
+    this.watchedFolder,
+  });
   CapturePermission perm;
   CapturePermission afterRequest = CapturePermission.granted;
   final bool isSupported;

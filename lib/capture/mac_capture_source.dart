@@ -49,6 +49,16 @@ class MacCaptureSource implements CaptureSource {
   @override
   CaptureCopy get copy => CaptureCopy.mac;
 
+  String? _folderName;
+  @override
+  String? get watchedFolder => _folderName;
+
+  Future<Directory> _resolveDir() async {
+    final dir = await _screenshotDir();
+    _folderName = p.basename(dir.path);
+    return dir;
+  }
+
   // ---- permission -------------------------------------------------------
 
   /// Reading the Desktop, Documents or Downloads folder needs the user's
@@ -57,7 +67,7 @@ class MacCaptureSource implements CaptureSource {
   @override
   Future<CapturePermission> permission() async {
     try {
-      final dir = await _screenshotDir();
+      final dir = await _resolveDir();
       if (!await dir.exists()) return CapturePermission.granted;
       await dir.list().isEmpty;
       return CapturePermission.granted;
@@ -86,7 +96,7 @@ class MacCaptureSource implements CaptureSource {
     if (!await cursor.exists()) {
       await cursor.writeAsString('${_now().millisecondsSinceEpoch}');
     }
-    final dir = await _screenshotDir();
+    final dir = await _resolveDir();
     try {
       _fsSub = dir.watch().listen((_) => _scan(), onError: (_) {});
     } on FileSystemException {
@@ -128,7 +138,7 @@ class MacCaptureSource implements CaptureSource {
   }
 
   Future<bool> _scanOnce() async {
-    final dir = await _screenshotDir();
+    final dir = await _resolveDir();
     if (!await dir.exists()) return false;
     final inbox = await _inboxDir();
     final cursorFile = File(p.join(inbox.parent.path, 'capture_cursor'));

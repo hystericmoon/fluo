@@ -58,6 +58,9 @@ class CaptureController extends ChangeNotifier {
   /// Wording that fits the platform's capture.
   CaptureCopy get copy => _source.copy;
 
+  /// The folder being watched, for the session card (null on the phone).
+  String? get watchedFolder => _source.watchedFolder;
+
   ReviewSession? get session => _repo.activeSession();
 
   void _set(CaptureStatus s) {

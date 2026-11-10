@@ -151,6 +151,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                         newCount: sessionAlbum.pendingCount,
                         status: capture.status,
                         copy: capture.copy,
+                        folder: capture.watchedFolder,
                         onReview: () =>
                             _push(TriageScreen(albumId: sessionAlbum.album.id)),
                         onPause: capture.pause,
@@ -200,6 +201,7 @@ class _SessionCard extends StatelessWidget {
     required this.newCount,
     required this.status,
     required this.copy,
+    required this.folder,
     required this.onReview,
     required this.onPause,
     required this.onResume,
@@ -209,6 +211,7 @@ class _SessionCard extends StatelessWidget {
   final int newCount;
   final CaptureStatus status;
   final CaptureCopy copy;
+  final String? folder;
   final VoidCallback onReview;
   final VoidCallback onPause;
   final VoidCallback onResume;
@@ -233,7 +236,7 @@ class _SessionCard extends StatelessWidget {
       _ => (FluoColors.ux, copy.accessLabel),
     };
     final detail = switch (status) {
-      CaptureStatus.watching => copy.watching,
+      CaptureStatus.watching => copy.watchingText(folder),
       CaptureStatus.off => copy.checking,
       CaptureStatus.paused => 'Screenshots are not being picked up',
       CaptureStatus.needsPermission => copy.needsPermission,
