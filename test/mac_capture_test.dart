@@ -67,6 +67,7 @@ void main() {
       src = MacCaptureSource(
         screenshotDir: () async => shots,
         inboxDir: () async => inbox,
+        sharedDir: () async => Directory(p.join(tmp.path, 'support', 'fluo', 'shared')),
         openSystemSettings: () async {},
         pollInterval: const Duration(milliseconds: 40),
         now: () => clock,
@@ -225,10 +226,14 @@ void main() {
       expect(await src.drain(), hasLength(1));
     });
 
-    test('there is nothing shared to Fluo on desktop yet', () async {
+    test('a fresh source has nothing waiting and announces nothing', () async {
+      var fired = 0;
+      final sub = src.sharedIn.listen((_) => fired++);
       expect(await src.drainShared(), isEmpty);
       await src.ackShared(const []);
-      expect(await src.sharedIn.isEmpty, isTrue);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(fired, 0);
+      await sub.cancel();
     });
 
     test('openSettings calls the settings opener', () async {
