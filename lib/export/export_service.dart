@@ -29,8 +29,7 @@ class ExportServices {
 
 /// Builds exports from an album's kept screens.
 class ExportService {
-  ExportService(this.repo, this.services, {Future<RenderedShot> Function(ExportEntry e)? render})
-      : _render = render;
+  ExportService(this.repo, this.services, {this._render});
 
   final FluoRepo repo;
   final ExportServices services;

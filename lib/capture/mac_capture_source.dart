@@ -48,6 +48,7 @@ class MacCaptureSource implements CaptureSource {
   StreamSubscription<FileSystemEvent>? _fsSub;
   Timer? _poll;
   bool _scanning = false;
+  Future<void>? _inflight;
   bool _rescan = false;
 
   /// Files already copied, by `path|modifiedMs`, so a poll never copies twice.
@@ -221,6 +222,9 @@ class MacCaptureSource implements CaptureSource {
     _poll = null;
     await _fsSub?.cancel();
     _fsSub = null;
+    // Let a scan already under way finish (it imports nothing once stopped)
+    // before the cursor goes, so it cannot pick up a later screenshot.
+    await _inflight;
     _seen.clear();
     // A paused or ended session must not import what happens meanwhile.
     final inbox = await _inboxDir();
@@ -234,6 +238,8 @@ class MacCaptureSource implements CaptureSource {
       return;
     }
     _scanning = true;
+    final done = Completer<void>();
+    _inflight = done.future;
     try {
       do {
         _rescan = false;
@@ -243,6 +249,7 @@ class MacCaptureSource implements CaptureSource {
       // A folder that vanished or lost access is reported by [permission].
     } finally {
       _scanning = false;
+      done.complete();
     }
   }
 
@@ -269,6 +276,7 @@ class MacCaptureSource implements CaptureSource {
 
     var any = false;
     for (final f in found) {
+      if (_poll == null) break; // stopped while scanning
       final key = '${f.file.path}|${f.modifiedMs}';
       if (_seen.contains(key)) continue;
       if (await _copyToInbox(f.file, inbox, f.modifiedMs)) {
