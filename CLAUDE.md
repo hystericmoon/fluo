@@ -29,7 +29,7 @@ Flutter 3.47 stable, `shadcn_flutter` 0.0.55. Android SDK 36 (set `ANDROID_HOME`
 - Analyze: `flutter analyze`
 - Test: `flutter test`
 - macOS: `flutter run -d macos`, `flutter build macos --debug` -> `build/macos/Build/Products/Debug/fluo.app`. The `macos/` folder is generated; `flutter create` rewrites `.metadata` and `analysis_options.yaml`, so check the diff.
-- macOS DMG: `tool/make_dmg.sh` -> `build/Fluo.dmg` (ad-hoc signed, not notarised; right-click Open on first launch).
+- macOS DMG: `tool/make_dmg.sh` -> `build/Fluo.dmg` (ad-hoc signed by default; with `DEVELOPER_ID` and `NOTARY_PROFILE` set it signs with the hardened runtime, notarises and staples; see `docs/release.md`).
 - Debug APK: `flutter build apk --debug` -> `build/app/outputs/flutter-apk/app-debug.apk`
 - Kotlin unit tests: `cd android && ./gradlew :app:testDebugUnitTest` (needs `ANDROID_HOME`)
 - Release: `flutter build appbundle --release` (signs with `android/key.properties` if present, else the debug key, which Play rejects). `docs/release.md` has the release checks.

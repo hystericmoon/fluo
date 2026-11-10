@@ -111,3 +111,36 @@ Shown in Settings, "Privacy and credits": *Fluo keeps everything on this phone. 
 3. Upload keystore, Play Console account, listing form, data safety form, foreground service form and demo video.
 4. Hardware: nothing has run on a physical Android device, and the TalkBack script in `docs/accessibility.md` is still owed. The Play in-app update flow can only be tested from a Play build (internal test track or internal app sharing).
 5. Screenshots for the listing.
+
+## macOS signing and notarisation
+
+`tool/make_dmg.sh` builds `build/Fluo.dmg`. Run bare, it is ad-hoc signed and testers must right-click the app and choose Open once. To ship a DMG that opens without a warning it must be signed with a Developer ID, notarised by Apple and stapled. The script does all of it when `DEVELOPER_ID` (and `NOTARY_PROFILE`) are set. Needs a Mac with Xcode command line tools; nothing here has been run yet because it needs the Apple Developer ID.
+
+One-time setup (needs the paid Apple Developer Program):
+
+1. In Xcode, Settings > Accounts > Manage Certificates, add **Developer ID Application**. Or create it at developer.apple.com > Certificates and import it into the login keychain. Note the **Team ID**.
+2. Check it is there. The identity string is what `DEVELOPER_ID` takes:
+   ```bash
+   security find-identity -v -p codesigning
+   # "Developer ID Application: Your Name (TEAMID)"
+   ```
+3. Make an app-specific password at account.apple.com > Sign-In and Security > App-Specific Passwords, then store a notary profile. The password goes into the keychain, never into the repo or the script:
+   ```bash
+   xcrun notarytool store-credentials fluo-notary --apple-id YOUR_APPLE_ID --team-id TEAMID
+   ```
+
+Each release:
+
+```bash
+DEVELOPER_ID="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=fluo-notary tool/make_dmg.sh
+```
+
+What the script does, in order: `flutter build macos --release`, then `codesign --options runtime --timestamp` on every nested framework, dylib and helper (deepest first, no `--deep`), then on the app with `macos/Runner/Release.entitlements` (the sandbox stays on); `codesign --verify`; builds and signs the DMG; `notarytool submit --wait`; `stapler staple` and `stapler validate`; `spctl --assess`.
+
+Checks after it finishes, on a Mac that has never seen the build (or after `xattr -w com.apple.quarantine "0081;00000000;Safari;" build/Fluo.dmg`): the DMG opens with no Gatekeeper warning, the app launches, capture and the folder picker work, drag and drop works.
+
+If notarisation says Invalid: `xcrun notarytool log <submission-id> --keychain-profile fluo-notary`. Usual causes are an unsigned nested binary or a missing secure timestamp.
+
+Notes:
+- `Release.entitlements` has a `temporary-exception.files.home-relative-path.read-only` for `/Desktop/`. Developer ID notarisation allows it; the Mac App Store would not. If Fluo ever goes to the Mac App Store, drop the exception and rely on the folder picker.
+- Hardened runtime needs no extra entitlements for a release Flutter build (AOT, no JIT).

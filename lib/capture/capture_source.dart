@@ -26,6 +26,7 @@ class CaptureCopy {
     required this.limited,
     required this.failed,
     required this.allowLabel,
+    required this.device,
     this.watchingIn,
   });
 
@@ -45,6 +46,9 @@ class CaptureCopy {
   /// Button that raises the system permission prompt.
   final String allowLabel;
 
+  /// What the user's device is called in prose: "phone" or "Mac".
+  final String device;
+
   static const phone = CaptureCopy(
     accessLabel: 'Needs photo access',
     watching: 'New screenshots land here automatically. Missed one? Share it to Fluo from your gallery.',
@@ -55,6 +59,7 @@ class CaptureCopy {
     failed:
         'Fluo could not start watching for screenshots. Try again, or share a screenshot to Fluo from your gallery and pick an album.',
     allowLabel: 'Allow photo access',
+    device: 'phone',
   );
 
   static const mac = CaptureCopy(
@@ -68,6 +73,7 @@ class CaptureCopy {
     limited: 'Fluo cannot see all of your screenshot folder. Allow access in System Settings.',
     failed: 'Fluo could not start watching for screenshots. Try again.',
     allowLabel: 'Allow folder access',
+    device: 'Mac',
     watchingIn: _macWatchingIn,
   );
 
