@@ -1,4 +1,11 @@
-Last updated 2026-11-09
+Last updated 2026-11-12
+
+## 2026-11-12 UI audit (PR #14)
+- Keyboard: fields stay above the on-screen keyboard (`ScreenFrame`, Editor); one accent border on focus; Triage card shrinks to fit. In Triage the keyboard action key (a check mark) keeps the shot and goes to the next card with the keyboard up (`_typing`); the buttons never raise it.
+- Settings: update controls are replaced by a Version note when the copy cannot self-update (persisted `updates_unsupported`; sideloaded APK and desktop). Theme chips are one row of five swatches.
+- Album: severity filters hidden until a pin exists (plain "N screens" shows); Delete album lives in an "Album options" menu in the header (hold, or tap twice, stays inside it). Albums: an empty album shows one empty outline.
+- Editor: short labels under the tool icons; the duplicate back arrow is gone (Done is the exit). Triage hint says which way keeps.
+- Needs a device: the keyboard staying up between Triage cards, keyboard height on a real IME, and the TalkBack script.
 
 ## Next up
 Session 10 is written up in `docs/release.md`. Decision: no Play Store or App Store release; Fluo is shared as a sideloaded APK with application ID `app.haho.fluo`. Only this remains:
