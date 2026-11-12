@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import '../capture/capture_scope.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_scope.dart';
 import '../theme/accent.dart';
@@ -229,9 +230,10 @@ class _Updates extends StatelessWidget {
 class _About extends StatefulWidget {
   const _About();
 
-  static const privacy =
-      'Fluo keeps everything on this phone. There are no accounts and no cloud. '
-      'Nothing leaves the phone except what you choose to share from the export screen.';
+  /// [device] is "phone" or "Mac" (`CaptureCopy.device`).
+  static String privacy(String device) =>
+      'Fluo keeps everything on this $device. There are no accounts and no cloud. '
+      'Nothing leaves the $device except what you choose to share from the export screen.';
 
   @override
   State<_About> createState() => _AboutState();
@@ -252,7 +254,7 @@ class _AboutState extends State<_About> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Semantics(header: true, child: Text('Privacy and credits', style: fs(15, w: FontWeight.w600))),
       const SizedBox(height: 8),
-      Text(_About.privacy, style: fs(13, c: FluoColors.fgMuted, h: 1.4)),
+      Text(_About.privacy(CaptureScope.of(context).copy.device), style: fs(13, c: FluoColors.fgMuted, h: 1.4)),
       const SizedBox(height: 8),
       Text('Fonts: Lexend and Inter, used under the SIL Open Font License 1.1.',
           style: fs(13, c: FluoColors.fgMuted, h: 1.4)),

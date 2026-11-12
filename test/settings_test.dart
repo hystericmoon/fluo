@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fluo/capture/capture_source.dart' show CaptureCopy;
 import 'package:fluo/data/repository.dart';
 import 'package:fluo/main.dart';
 import 'package:fluo/motion/motion.dart';
@@ -180,6 +181,18 @@ void main() {
       expect(find.textContaining('The Lexend Project Authors'), findsOneWidget);
       expect(find.textContaining('The Inter Project Authors'), findsOneWidget);
       expect(find.text('Hide font licences'), findsOneWidget);
+    });
+
+    testWidgets('privacy statement says Mac when capture runs on a Mac', (tester) async {
+      setPhone(tester);
+      tester.view.physicalSize = const Size(390 * 3, 1500 * 3);
+      repo = memRepo();
+      await tester.pumpWidget(host(const SettingsScreen(),
+          repo: repo, source: FakeSource(copy: CaptureCopy.mac, watchedFolder: 'Desktop')));
+      await tester.pump();
+      expect(find.textContaining('Nothing leaves the Mac except what you choose to share'), findsOneWidget);
+      expect(find.textContaining('on this Mac'), findsOneWidget);
+      expect(find.textContaining('phone'), findsNothing);
     });
 
     testWidgets('the Reduce motion switch turns motion off app-wide and is saved', (tester) async {

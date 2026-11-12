@@ -1,6 +1,11 @@
-Last updated 2026-11-09
+Last updated 2026-11-10
 
-## Next up
+## Next up (2026-11-10, main at 97e31e6 plus branch claude/macos-copy-and-signing)
+- DONE here: Settings privacy text now says "Mac" on macOS (`CaptureCopy.device`, injected through `CaptureScope`; session-card copy was already platform-aware). `tool/make_dmg.sh` now signs (hardened runtime), notarises and staples when `DEVELOPER_ID` and `NOTARY_PROFILE` are set; setup steps in `docs/release.md`. The signing path has NOT been run (needs a Mac and the Apple Developer ID).
+- Needs a person on hardware: TalkBack script (`docs/accessibility.md`), swipe the app out of recents, a real screenshot gesture; on the Mac, the folder picker across a restart and a real drag-drop under the sandbox.
+- `test/mac_folder_test.dart` "unreadable default folder" fails when run as root (chmod 000 is still readable); passes unprivileged, as in CI.
+
+## Earlier next up
 Session 10 is written up in `docs/release.md`. Decision: no Play Store or App Store release; Fluo is shared as a sideloaded APK with application ID `app.haho.fluo`. Only this remains:
 - Run on a physical Android device and do the manual TalkBack script in `docs/accessibility.md`. Nothing has run on hardware.
 - If a store release is ever wanted: trademark search, upload keystore, Play Console forms (texts drafted in `docs/release.md` and `docs/privacy.md`).
