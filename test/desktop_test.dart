@@ -1,15 +1,18 @@
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fluo/data/models.dart';
 import 'package:fluo/desktop/desktop_shell.dart';
+import 'package:fluo/edit/editor_state.dart' show EditTool;
+import 'package:fluo/export/export_scope.dart';
+import 'package:fluo/export/export_service.dart';
 import 'package:fluo/main.dart';
 import 'package:fluo/screens/albums.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
-
+import 'package:fluo/screens/editor.dart';
+import 'package:fluo/screens/export.dart';
 import 'package:fluo/ui/kit.dart' show FluoButton;
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'support/fake_source.dart';
 import 'support/harness.dart';
-
 void setWide(WidgetTester t, {double w = 1280, double h = 800}) {
   t.view.physicalSize = Size(w, h);
   t.view.devicePixelRatio = 1;
@@ -182,5 +185,90 @@ void main() {
     await t.sendKeyEvent(LogicalKeyboardKey.keyK);
     await t.pumpAndSettle();
     expect(repo.getShot(shots[2].id)!.status, ShotStatus.pending);
+  });
+
+  testWidgets('moveShots moves screens with their pins; same album and unknown album do nothing', (t) async {
+    final repo = seeded();
+    final albums = repo.listAlbums();
+    final a = albums[0].album, b = albums[1].album;
+    final shots = await seedKeptPngShots(t, repo, a.id, 3);
+    final other = await seedKeptPngShots(t, repo, b.id, 1);
+    repo.addPin(shots[1].id, Severity.bug, 0.5, 0.5, note: 'x');
+    expect(repo.moveShots([shots[1].id, shots[0].id], b.id), 2);
+    expect([for (final s in repo.shotsIn(b.id, status: ShotStatus.kept)) s.id],
+        [other[0].id, shots[1].id, shots[0].id]);
+    expect(repo.shotsIn(a.id, status: ShotStatus.kept).map((s) => s.id), [shots[2].id]);
+    expect(repo.pinsInAlbum(b.id)[shots[1].id]!.length, 1);
+    expect(repo.moveShots([shots[2].id], a.id), 0);
+    expect(repo.moveShots([shots[2].id], 'nope'), 0);
+  });
+
+  testWidgets('export can be limited to chosen screens, renumbered from 1', (t) async {
+    final repo = seeded();
+    final a = repo.listAlbums().first.album;
+    final shots = await seedKeptPngShots(t, repo, a.id, 3);
+    final svc = ExportService(repo, testExports());
+    final es = svc.entries(a.id, only: {shots[0].id, shots[2].id});
+    expect(es.map((e) => e.shot.id), [shots[0].id, shots[2].id]);
+    expect(es.map((e) => e.number), [1, 2]);
+    expect(svc.summary(a.id, only: {shots[1].id}).screens, 1);
+    expect(svc.summary(a.id).screens, 3);
+  });
+
+  testWidgets('Move to album moves the selection through the picker', (t) async {
+    setWide(t);
+    final repo = seeded();
+    final a = repo.listAlbums().first.album;
+    final b = repo.listAlbums()[1].album;
+    final shots = await seedKeptPngShots(t, repo, a.id, 2);
+    await pumpApp(t, repo);
+    await t.tap(find.text('Select all'));
+    await t.pumpAndSettle();
+    expect(find.text('Export 2 screens'), findsOneWidget);
+    await t.tap(find.text('Move to album…'));
+    await t.pumpAndSettle();
+    expect(find.text('Move 2 screens to…'), findsOneWidget);
+    await t.tap(find.text(b.name).last);
+    await t.pumpAndSettle();
+    expect(repo.getShot(shots[0].id)!.albumId, b.id);
+    expect(repo.getShot(shots[1].id)!.albumId, b.id);
+  });
+
+  testWidgets('desktop editor: tool rail, details panel, number keys pick tools, Esc closes', (t) async {
+    setWide(t);
+    final repo = seeded();
+    final a = repo.listAlbums().first.album;
+    final shots = await seedKeptPngShots(t, repo, a.id, 1);
+    await pumpApp(t, repo);
+    await t.tap(find.byKey(ValueKey('tile-${shots[0].id}')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Edit marks'));
+    await t.pumpAndSettle();
+    expect(find.byType(EditorScreen), findsOneWidget);
+    expect(find.text('Pin'), findsOneWidget); // tool label in the rail
+    await t.sendKeyEvent(LogicalKeyboardKey.digit5); // Pin tool
+    await t.pumpAndSettle();
+    expect(find.text('Add pin in the middle'), findsOneWidget);
+    await t.sendKeyEvent(LogicalKeyboardKey.escape);
+    await t.pumpAndSettle();
+    expect(find.byType(EditorScreen), findsNothing);
+    expect(EditTool.values[4], EditTool.pin);
+  });
+
+  testWidgets('desktop export screen is two columns, and Export selection names its scope', (t) async {
+    setWide(t);
+    final repo = seeded();
+    final a = repo.listAlbums().first.album;
+    final shots = await seedKeptPngShots(t, repo, a.id, 2);
+    await pumpApp(t, repo);
+    await t.tap(find.byKey(ValueKey('tile-${shots[0].id}')));
+    await t.pump(const Duration(milliseconds: 100));
+    await t.tap(find.text('Export').first);
+    await t.pumpAndSettle();
+    expect(find.byType(ExportScreen), findsOneWidget);
+    final formatX = t.getTopLeft(find.text('Format').first).dx;
+    final actionX = t.getTopLeft(find.byType(FluoButton).last).dx;
+    expect(actionX, greaterThan(formatX + 300)); // action sits in the right column
+    expect(find.byType(ExportScope), findsWidgets);
   });
 }

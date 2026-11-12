@@ -5,6 +5,7 @@ import '../capture/capture_scope.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_scope.dart';
 import '../theme/accent.dart';
+import '../desktop/desktop_scope.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
 import '../update/update_controller.dart';
@@ -18,6 +19,18 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = SettingsScope.of(context);
     final updates = UpdateScope.of(context);
+    final appearance = FluoCard(
+      radius: 16,
+      padding: const EdgeInsets.all(16),
+      child: _Appearance(settings: settings),
+    );
+    final updatesCard = FluoCard(
+      radius: 16,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: updates.canUpdate
+          ? _Updates(settings: settings, updates: updates)
+          : _VersionOnly(version: updates.info?.toString()),
+    );
     return ScreenFrame(
       child: SingleChildScrollView(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -27,19 +40,18 @@ class SettingsScreen extends StatelessWidget {
             leading: backButton(context, label: 'Back to albums'),
           ),
           const SizedBox(height: 16),
-          FluoCard(
-            radius: 16,
-            padding: const EdgeInsets.all(16),
-            child: _Appearance(settings: settings),
-          ),
-          const SizedBox(height: 16),
-          FluoCard(
-            radius: 16,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: updates.canUpdate
-                ? _Updates(settings: settings, updates: updates)
-                : _VersionOnly(version: updates.info?.toString()),
-          ),
+          if (DesktopScope.isWide(context))
+            // Desktop: appearance beside updates, so the page is not a long scroll.
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: appearance),
+              const SizedBox(width: 16),
+              Expanded(child: updatesCard),
+            ])
+          else ...[
+            appearance,
+            const SizedBox(height: 16),
+            updatesCard,
+          ],
           const SizedBox(height: 16),
           const FluoCard(
             radius: 16,

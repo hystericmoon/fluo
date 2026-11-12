@@ -38,9 +38,13 @@ class ExportService {
   Future<RenderedShot> _renderEntry(ExportEntry e) =>
       (_render ?? (x) => renderShotPng(x.shot, x.annotations, x.pins))(e);
 
-  /// The kept screens in flow order, numbered from 1.
-  List<ExportEntry> entries(String albumId) {
-    final kept = repo.shotsIn(albumId, status: ShotStatus.kept);
+  /// The kept screens in flow order, numbered from 1. With [only], just those
+  /// screens (still in flow order, renumbered from 1).
+  List<ExportEntry> entries(String albumId, {Set<String>? only}) {
+    final kept = [
+      for (final s in repo.shotsIn(albumId, status: ShotStatus.kept))
+        if (only == null || only.contains(s.id)) s,
+    ];
     final pins = repo.pinsInAlbum(albumId);
     return [
       for (var i = 0; i < kept.length; i++)
@@ -53,8 +57,8 @@ class ExportService {
     ];
   }
 
-  ExportSummary summary(String albumId) {
-    final es = entries(albumId);
+  ExportSummary summary(String albumId, {Set<String>? only}) {
+    final es = entries(albumId, only: only);
     return ExportSummary(
       screens: es.length,
       pins: es.fold(0, (n, e) => n + e.pins.length),
@@ -74,9 +78,10 @@ class ExportService {
     String albumId,
     ExportOptions options, {
     void Function(int done, int total)? onProgress,
+    Set<String>? only,
   }) async {
     final album = repo.getAlbum(albumId)!;
-    final es = entries(albumId);
+    final es = entries(albumId, only: only);
     if (es.isEmpty) throw StateError('Nothing to export: no kept screens');
 
     await clearWorkDir();
@@ -139,8 +144,9 @@ class ExportService {
     String albumId,
     ExportOptions options, {
     void Function(int done, int total)? onProgress,
+    Set<String>? only,
   }) async {
-    final r = await build(albumId, options, onProgress: onProgress);
+    final r = await build(albumId, options, onProgress: onProgress, only: only);
     await services.share.share(r);
   }
 

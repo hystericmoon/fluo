@@ -20,6 +20,7 @@ import '../ui/kit.dart';
 import '../ui/new_album_dialog.dart';
 import '../ui/shot_image.dart';
 import '../ui/wordmark.dart';
+import 'album_picker.dart';
 import 'desktop_scope.dart';
 
 /// The home screen: the desktop shell in a wide macOS window, the phone's
@@ -97,7 +98,7 @@ class _DesktopShellState extends State<DesktopShell> {
       case 'flow':
         setState(() => _flow = true);
       case 'settings':
-        _push(const SettingsScreen());
+        _push(const SettingsScreen(), maxWidth: 860);
     }
   }
 
@@ -129,7 +130,31 @@ class _DesktopShellState extends State<DesktopShell> {
     final id = _albumId;
     if (id == null) return;
     final kept = RepoScope.of(context).shotsIn(id, status: ShotStatus.kept);
-    if (kept.isNotEmpty) _push(ExportScreen(albumId: id), maxWidth: 640);
+    if (kept.isNotEmpty) _push(ExportScreen(albumId: id), maxWidth: 960);
+  }
+
+  /// Export only the selected screens.
+  void _exportSelection() {
+    final id = _albumId;
+    if (id == null || _sel.isEmpty) return;
+    _push(ExportScreen(albumId: id, only: {..._sel}), maxWidth: 960);
+  }
+
+  /// Move the selected screens to another album (pins and marks go with them).
+  Future<void> _moveSelected() async {
+    final repo = RepoScope.of(context);
+    final from = _albumId;
+    if (from == null || _sel.isEmpty) return;
+    final others = [for (final a in repo.listAlbums()) if (a.album.id != from) a];
+    if (others.isEmpty) return;
+    final ids = [for (final s in repo.shotsIn(from, status: ShotStatus.kept)) if (_sel.contains(s.id)) s.id];
+    final to = await pickAlbum(context, others, count: ids.length);
+    if (to == null || !mounted) return;
+    repo.moveShots(ids, to);
+    setState(() {
+      _sel.clear();
+      _focus = _anchor = null;
+    });
   }
 
   void _review() {
@@ -410,6 +435,8 @@ class _DesktopShellState extends State<DesktopShell> {
                   onChanged: () => setState(() {}),
                   onExport: _export,
                   onReview: _review,
+                  onExportSelection: _exportSelection,
+                  onMove: albums.length > 1 ? _moveSelected : null,
                 ),
               ),
             ],
@@ -798,7 +825,13 @@ class _Inspector extends StatelessWidget {
     required this.onChanged,
     required this.onExport,
     required this.onReview,
+    required this.onExportSelection,
+    required this.onMove,
   });
+  final VoidCallback onExportSelection;
+
+  /// Null when there is no other album to move to.
+  final VoidCallback? onMove;
   final Album? album;
   final List<Shot> kept;
   final int pending;
@@ -876,6 +909,16 @@ class _Inspector extends StatelessWidget {
           Text('Discard removes them from this album. You can undo for a few seconds.',
               style: fs(13, c: FluoColors.fgMuted, h: 1.4)),
           const Spacer(),
+          FluoButton(
+            label: 'Export ${selected.length} screens',
+            icon: LucideIcons.upload,
+            kind: BtnKind.primary,
+            expand: true,
+            onPressed: onExportSelection,
+          ),
+          const SizedBox(height: 8),
+          FluoButton(label: 'Move to album…', icon: LucideIcons.folderInput, expand: true, onPressed: onMove),
+          const SizedBox(height: 8),
           FluoButton(
             label: 'Discard ${selected.length} screens',
             icon: LucideIcons.trash2,
@@ -968,6 +1011,8 @@ class _Inspector extends StatelessWidget {
           expand: true,
           onPressed: () => onEdit(shot.id),
         ),
+        const SizedBox(height: 8),
+        FluoButton(label: 'Move to album…', icon: LucideIcons.folderInput, expand: true, onPressed: onMove),
         const SizedBox(height: 8),
         FluoButton(
           label: 'Discard',

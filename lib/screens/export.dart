@@ -4,6 +4,7 @@ import '../data/repo_scope.dart';
 import '../export/export_scope.dart';
 import '../export/export_service.dart';
 import '../export/model.dart';
+import '../desktop/desktop_scope.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
 import '../theme/accent.dart';
@@ -25,8 +26,11 @@ String _actionLabel(ExportFormat f) => switch (f) {
 /// Export an album: pick a format, decide about originals and the brief, see
 /// what is hidden, then send it through the share sheet.
 class ExportScreen extends StatefulWidget {
-  const ExportScreen({super.key, required this.albumId});
+  const ExportScreen({super.key, required this.albumId, this.only});
   final String albumId;
+
+  /// Export just these screens (desktop multi-select). Null exports the album.
+  final Set<String>? only;
 
   @override
   State<ExportScreen> createState() => _ExportScreenState();
@@ -46,11 +50,11 @@ class _ExportScreenState extends State<ExportScreen> {
   Future<void> _export(ExportService svc) async {
     if (_busy) return;
     setState(() {
-      _progress = (0, svc.summary(widget.albumId).screens);
+      _progress = (0, svc.summary(widget.albumId, only: widget.only).screens);
       _error = null;
     });
     try {
-      await svc.exportAndShare(widget.albumId, _options, onProgress: (d, t) {
+      await svc.exportAndShare(widget.albumId, _options, only: widget.only, onProgress: (d, t) {
         if (mounted) setState(() => _progress = (d, t));
       });
       if (mounted) setState(() => _progress = null);
@@ -69,9 +73,106 @@ class _ExportScreenState extends State<ExportScreen> {
     final repo = RepoScope.of(context);
     final svc = ExportService(repo, ExportScope.of(context));
     final album = repo.getAlbum(widget.albumId);
-    final sum = svc.summary(widget.albumId);
+    final sum = svc.summary(widget.albumId, only: widget.only);
     final canExport = sum.screens > 0 && !_busy;
     final p = _progress;
+
+    final header = ScreenHeader(
+      title: widget.only == null ? 'Export album' : 'Export selection',
+      subtitle:
+          '${album?.name ?? ''} · ${sum.screens} ${sum.screens == 1 ? 'screen' : 'screens'} · ${sum.pins} ${sum.pins == 1 ? 'pin' : 'pins'}',
+      leading: FluoIconButton(
+        icon: LucideIcons.x,
+        label: 'Close export',
+        onPressed: () => Navigator.of(context).maybePop(),
+      ),
+    );
+    final formats = Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: 'Format',
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text('Format', style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
+        const SizedBox(height: 8),
+        for (final f in ExportFormat.values) ...[
+          _formatCard(f),
+          if (f != ExportFormat.values.last) const SizedBox(height: 8),
+        ],
+      ]),
+    );
+    final options = FluoCard(
+      child: Column(children: [
+        SwitchRow(
+          title: 'Include original screenshots',
+          help: _fmt.canIncludeOriginals
+              ? 'Off by default. Edits are baked into the exported images.'
+              : 'Not used for ${_fmt.title}. Its pages show the edited screens only.',
+          value: _orig && _fmt.canIncludeOriginals,
+          enabled: _fmt.canIncludeOriginals && !_busy,
+          onChanged: (v) => setState(() => _orig = v),
+        ),
+        Container(height: 1, color: FluoColors.border),
+        SwitchRow(
+          title: 'Add a review brief',
+          help: _fmt.canIncludeBrief
+              ? 'A short summary of what to look at, at the start.'
+              : 'Not used for ${_fmt.title}.',
+          value: _brief && _fmt.canIncludeBrief,
+          enabled: _fmt.canIncludeBrief && !_busy,
+          onChanged: (v) => setState(() => _brief = v),
+        ),
+      ]),
+    );
+    final action = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      FluoButton(
+        label: p == null ? _actionLabel(_fmt) : 'Exporting ${p.$1} of ${p.$2}…',
+        icon: p == null ? LucideIcons.upload : null,
+        kind: BtnKind.primary,
+        height: 52,
+        radius: 12,
+        fontSize: 16,
+        weight: FontWeight.w600,
+        expand: true,
+        onPressed: canExport ? () => _export(svc) : null,
+      ),
+      if (_error != null) ...[
+        const SizedBox(height: 12),
+        Semantics(
+          liveRegion: true,
+          child: Text(_error!, style: fs(14, c: FluoTints.bugInk, h: 1.4)),
+        ),
+      ],
+    ]);
+
+    // Wide desktop window: formats on the left, options and the action on the
+    // right, so nothing needs scrolling.
+    if (DesktopScope.isWide(context)) {
+      return ScreenFrame(
+        padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          header,
+          const SizedBox(height: 20),
+          Expanded(
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: SingleChildScrollView(child: formats)),
+              const SizedBox(width: 28),
+              SizedBox(
+                width: 380,
+                child: SingleChildScrollView(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    options,
+                    const SizedBox(height: 16),
+                    _notice(sum),
+                    const SizedBox(height: 16),
+                    action,
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      );
+    }
 
     return ScreenFrame(
       child: LayoutBuilder(
@@ -79,75 +180,15 @@ class _ExportScreenState extends State<ExportScreen> {
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: box.maxHeight),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              ScreenHeader(
-                title: 'Export album',
-                subtitle:
-                    '${album?.name ?? ''} · ${sum.screens} ${sum.screens == 1 ? 'screen' : 'screens'} · ${sum.pins} ${sum.pins == 1 ? 'pin' : 'pins'}',
-                leading: FluoIconButton(
-                  icon: LucideIcons.x,
-                  label: 'Close export',
-                  onPressed: () => Navigator.of(context).maybePop(),
-                ),
-              ),
+              header,
               const SizedBox(height: 16),
-              Semantics(
-                container: true,
-                explicitChildNodes: true,
-                label: 'Format',
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Text('Format', style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
-                  const SizedBox(height: 8),
-                  for (final f in ExportFormat.values) ...[
-                    _formatCard(f),
-                    if (f != ExportFormat.values.last) const SizedBox(height: 8),
-                  ],
-                ]),
-              ),
+              formats,
               const SizedBox(height: 16),
-              FluoCard(
-                child: Column(children: [
-                  SwitchRow(
-                    title: 'Include original screenshots',
-                    help: _fmt.canIncludeOriginals
-                        ? 'Off by default. Edits are baked into the exported images.'
-                        : 'Not used for ${_fmt.title}. Its pages show the edited screens only.',
-                    value: _orig && _fmt.canIncludeOriginals,
-                    enabled: _fmt.canIncludeOriginals && !_busy,
-                    onChanged: (v) => setState(() => _orig = v),
-                  ),
-                  Container(height: 1, color: FluoColors.border),
-                  SwitchRow(
-                    title: 'Add a review brief',
-                    help: _fmt.canIncludeBrief
-                        ? 'A short summary of what to look at, at the start.'
-                        : 'Not used for ${_fmt.title}.',
-                    value: _brief && _fmt.canIncludeBrief,
-                    enabled: _fmt.canIncludeBrief && !_busy,
-                    onChanged: (v) => setState(() => _brief = v),
-                  ),
-                ]),
-              ),
+              options,
               const SizedBox(height: 16),
               _notice(sum),
               const SizedBox(height: 16),
-              FluoButton(
-                label: p == null ? _actionLabel(_fmt) : 'Exporting ${p.$1} of ${p.$2}…',
-                icon: p == null ? LucideIcons.upload : null,
-                kind: BtnKind.primary,
-                height: 52,
-                radius: 12,
-                fontSize: 16,
-                weight: FontWeight.w600,
-                expand: true,
-                onPressed: canExport ? () => _export(svc) : null,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Semantics(
-                  liveRegion: true,
-                  child: Text(_error!, style: fs(14, c: FluoTints.bugInk, h: 1.4)),
-                ),
-              ],
+              action,
             ]),
           ),
         ),
