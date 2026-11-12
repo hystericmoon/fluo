@@ -482,6 +482,7 @@ class _Sidebar extends StatelessWidget {
               children: [
                 if (sessionAlbum != null) ...[
                   SessionCard(
+                    stacked: true,
                     albumName: sessionAlbum.album.name,
                     newCount: sessionAlbum.pendingCount,
                     status: capture.status,

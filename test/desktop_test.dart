@@ -6,6 +6,7 @@ import 'package:fluo/main.dart';
 import 'package:fluo/screens/albums.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import 'package:fluo/ui/kit.dart' show FluoButton;
 import 'support/fake_source.dart';
 import 'support/harness.dart';
 
@@ -29,6 +30,23 @@ Future<void> pumpApp(WidgetTester t, repo, {bool desktop = true}) async {
 }
 
 void main() {
+  testWidgets('the sidebar session card shows full-width buttons and the album list', (t) async {
+    setWide(t);
+    final repo = seeded();
+    final a = repo.listAlbums().first.album;
+    await seedShots(t, repo, a.id, 2);
+    repo.startSession(a.id);
+    await pumpApp(t, repo);
+    expect(find.text('Session'), findsNothing);
+    expect(find.text('Review 2 new'), findsWidgets);
+    expect(find.text('Pause'), findsOneWidget);
+    // Stacked buttons are full width, so their labels are never cut off.
+    final pauseBtn = find.ancestor(of: find.text('Pause'), matching: find.byType(FluoButton));
+    expect(t.getSize(pauseBtn).width, greaterThan(200));
+    expect(find.text('Onboarding audit'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('a wide desktop window shows sidebar, grid and inspector', (t) async {
     setWide(t);
     final repo = seeded();
