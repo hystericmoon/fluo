@@ -3,14 +3,28 @@ import 'package:flutter/services.dart' show TextInputAction;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../data/models.dart';
+import '../desktop/desktop_scope.dart';
 import '../theme/tokens.dart';
 import '../theme/accent.dart';
 
-/// Pushes a screen with a short fade. Motion polish comes in session 8.
-Route<T> fluoRoute<T>(Widget page) => PageRouteBuilder<T>(
+/// Pushes a screen with a short fade. In the wide desktop layout a pushed
+/// screen sits in a centred column of [maxWidth] (the editor passes null to
+/// use the whole window); phones and narrow windows are unaffected.
+Route<T> fluoRoute<T>(Widget page, {double? maxWidth = 640}) => PageRouteBuilder<T>(
       transitionDuration: const Duration(milliseconds: 160),
       reverseTransitionDuration: const Duration(milliseconds: 120),
-      pageBuilder: (_, _, _) => page,
+      pageBuilder: (ctx, _, _) => maxWidth != null && DesktopScope.isWide(ctx)
+          ? ColoredBox(
+              color: FluoColors.bg,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: page,
+                ),
+              ),
+            )
+          : page,
       transitionsBuilder: (ctx, anim, _, child) {
         if (MediaQuery.maybeDisableAnimationsOf(ctx) ?? false) return child;
         return FadeTransition(opacity: anim, child: child);
@@ -52,6 +66,7 @@ class Pressable extends StatefulWidget {
 class _PressableState extends State<Pressable> {
   bool _pressed = false;
   bool _focused = false;
+  bool _hover = false; // pointer over it (desktop); never true on a touch screen
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +92,11 @@ class _PressableState extends State<Pressable> {
             },
           ),
         },
-        child: GestureDetector(
+        child: MouseRegion(
+          cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
+          onEnter: (_) => setState(() => _hover = true),
+          onExit: (_) => setState(() => _hover = false),
+          child: GestureDetector(
           // The Semantics above owns the tap action; a second node would make
           // TalkBack stop twice on every control.
           excludeFromSemantics: true,
@@ -97,6 +116,17 @@ class _PressableState extends State<Pressable> {
                   child: widget.builder(context, _pressed),
                 ),
               ),
+              if (_hover && enabled && !_pressed)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0x14FFFFFF),
+                        borderRadius: BorderRadius.circular(widget.radius),
+                      ),
+                    ),
+                  ),
+                ),
               if (_focused)
                 Positioned(
                   left: -4,
@@ -114,6 +144,7 @@ class _PressableState extends State<Pressable> {
                 ),
             ],
           ),
+        ),
         ),
       ),
     );

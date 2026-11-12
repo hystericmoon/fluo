@@ -146,7 +146,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                   padding: const EdgeInsets.only(bottom: 24),
                   children: [
                     if (sessionAlbum != null) ...[
-                      _SessionCard(
+                      SessionCard(
                         albumName: sessionAlbum.album.name,
                         newCount: sessionAlbum.pendingCount,
                         status: capture.status,
@@ -199,8 +199,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
   }
 }
 
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({
+class SessionCard extends StatelessWidget {
+  const SessionCard({
+    super.key,
     required this.albumName,
     required this.newCount,
     required this.status,

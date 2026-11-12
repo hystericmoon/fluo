@@ -15,7 +15,8 @@ import 'export/export_scope.dart';
 import 'export/export_service.dart';
 import 'capture/mac_capture_source.dart';
 import 'motion/motion.dart';
-import 'screens/albums.dart';
+import 'desktop/desktop_scope.dart';
+import 'desktop/desktop_shell.dart';
 import 'screens/splash.dart';
 import 'settings/app_settings.dart';
 import 'settings/settings_scope.dart';
@@ -40,6 +41,7 @@ Future<void> main() async {
             ? MacCaptureSource()
             : NoCaptureSource(),
     exports: appExportServices(),
+    desktop: Platform.isMacOS,
     updateSource: android ? const PlayUpdateSource() : const NoUpdateSource(),
     network: android ? const AndroidNetworkInfo() : const NoNetworkInfo(),
   ));
@@ -59,6 +61,7 @@ class FluoApp extends StatefulWidget {
     required this.exports,
     this.splash = const Duration(milliseconds: 1200),
     this.reduceMotion,
+    this.desktop = false,
     this.updateSource = const NoUpdateSource(),
     this.network = const NoNetworkInfo(),
     this.appInfo = const PackageAppInfoSource(),
@@ -67,6 +70,10 @@ class FluoApp extends StatefulWidget {
   final CaptureSource source;
   final ExportServices exports;
   final Duration splash;
+
+  /// Use the desktop layout (sidebar, grid, inspector) in windows wide enough
+  /// for it. On in the macOS app; off for phones and in tests.
+  final bool desktop;
 
   /// Forces the motion setting (tests). Normally null: the Settings switch
   /// decides, and the system "remove animations" setting always applies too.
@@ -81,6 +88,7 @@ class FluoApp extends StatefulWidget {
 
 class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
   bool _showSplash = true;
+  final DesktopCommands _commands = DesktopCommands();
   late final CaptureController _capture = CaptureController(widget.repo, widget.source);
   late final AppSettings _settings = AppSettings(widget.repo);
   late final UpdateController _updates = UpdateController(
@@ -101,12 +109,14 @@ class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
     // Earlier exports hold copies of screenshots: do not keep them around.
     ExportService(widget.repo, widget.exports).clearWorkDir().catchError((Object _) {});
     _capture.sync(); // picks a stored session back up and imports waiting shots
-    if (widget.source.canChooseFolder) {
+    if (widget.source.canChooseFolder || widget.desktop) {
       // The native Capture menu (macOS) asks Dart to do what the card does.
       const MethodChannel('app.fluo/folder').setMethodCallHandler((call) async {
         if (call.method != 'menu') return;
         if (call.arguments == 'chooseFolder') await _capture.chooseFolder();
         if (call.arguments == 'useDefaultFolder') await _capture.useDefaultFolder();
+        // The desktop menu bar (Album, View): the shell does the work.
+        if (call.arguments is String) _commands.send(call.arguments as String);
       });
     }
     _updates.autoCheck(); // if auto-update is on and it has been a while
@@ -123,6 +133,7 @@ class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _capture.dispose();
+    _commands.dispose();
     _updates.dispose();
     _settings.dispose();
     super.dispose();
@@ -147,28 +158,37 @@ class _FluoAppState extends State<FluoApp> with WidgetsBindingObserver {
                   services: widget.exports,
                   child: CaptureScope(
                     controller: _capture,
-                    child: ShadcnApp(
+                    child: DesktopScope(
+                      enabled: widget.desktop,
+                      commands: _commands,
+                      child: ShadcnApp(
                       title: 'Fluo',
                       debugShowCheckedModeBanner: false,
                       theme: fluoTheme(accent: _settings.accent),
                       // A phone layout, kept readable in a wide desktop window.
                       builder: widget.source.canChooseFolder
-                          ? (context, child) => ColoredBox(
-                              color: FluoColors.bg,
-                              child: Align(
-                                alignment: Alignment.topCenter,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 720),
-                                  child: child,
-                                ),
-                              ),
-                            )
+                          ? (context, child) =>
+                              // Wide desktop windows get the full-width shell;
+                              // narrower ones keep the phone layout, centred.
+                              DesktopScope.isWide(context)
+                                  ? ColoredBox(color: FluoColors.bg, child: child)
+                                  : ColoredBox(
+                                      color: FluoColors.bg,
+                                      child: Align(
+                                        alignment: Alignment.topCenter,
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 720),
+                                          child: child,
+                                        ),
+                                      ),
+                                    )
                           : null,
                       home: _showSplash
                           ? const SplashScreen()
                           : const FileDropZone(
-                              child: SharedIntake(child: AlbumsScreen()),
+                              child: SharedIntake(child: AdaptiveHome()),
                             ),
+                    ),
                     ),
                   ),
                 ),
