@@ -60,6 +60,47 @@ final class FolderChannel: NSObject {
     item.submenu = menu
     // Before Window and Help, after Edit and View.
     main.insertItem(item, at: max(1, main.items.count - 2))
+    installAlbumMenu(main)
+  }
+
+  /// Album and View items: each sends its name to Dart, where the desktop
+  /// shell does the work (same code as the buttons and keys).
+  private func installAlbumMenu(_ main: NSMenu) {
+    func add(_ menu: NSMenu, _ title: String, _ key: String, _ cmd: String,
+             _ mods: NSEvent.ModifierFlags = [.command]) {
+      let i = NSMenuItem(title: title, action: #selector(menuCommand(_:)), keyEquivalent: key)
+      i.keyEquivalentModifierMask = mods
+      i.target = self
+      i.representedObject = cmd
+      menu.addItem(i)
+    }
+    let album = NSMenu(title: "Album")
+    add(album, "New Album…", "n", "newAlbum")
+    add(album, "Review New Screenshots", "r", "review")
+    album.addItem(.separator())
+    add(album, "Export…", "e", "export")
+    // The app menu's Preferences… (⌘,) opens Settings.
+    if let pref = main.items.first?.submenu?.items.first(where: { $0.keyEquivalent == "," }) {
+      pref.target = self
+      pref.action = #selector(menuCommand(_:))
+      pref.representedObject = "settings"
+    }
+    let albumItem = NSMenuItem(title: "Album", action: nil, keyEquivalent: "")
+    albumItem.submenu = album
+    main.insertItem(albumItem, at: max(1, main.items.count - 2))
+
+    let view = NSMenu(title: "Screens")
+    add(view, "Grid Order", "1", "grid")
+    add(view, "Flow Order", "2", "flow")
+    let viewItem = NSMenuItem(title: "Screens", action: nil, keyEquivalent: "")
+    viewItem.submenu = view
+    main.insertItem(viewItem, at: max(1, main.items.count - 2))
+  }
+
+  @objc private func menuCommand(_ sender: NSMenuItem) {
+    if let cmd = sender.representedObject as? String {
+      channel.invokeMethod("menu", arguments: cmd)
+    }
   }
 
   @objc private func menuChoose() { channel.invokeMethod("menu", arguments: "chooseFolder") }

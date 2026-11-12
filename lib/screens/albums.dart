@@ -146,7 +146,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                   padding: const EdgeInsets.only(bottom: 24),
                   children: [
                     if (sessionAlbum != null) ...[
-                      _SessionCard(
+                      SessionCard(
                         albumName: sessionAlbum.album.name,
                         newCount: sessionAlbum.pendingCount,
                         status: capture.status,
@@ -199,8 +199,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
   }
 }
 
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({
+class SessionCard extends StatelessWidget {
+  const SessionCard({
+    super.key,
     required this.albumName,
     required this.newCount,
     required this.status,
@@ -214,7 +215,12 @@ class _SessionCard extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onFixAccess,
+    this.stacked = false,
   });
+
+  /// Narrow column (the desktop sidebar): every button on its own full-width
+  /// row, so labels are never cut.
+  final bool stacked;
   final String albumName;
   final int newCount;
   final CaptureStatus status;
@@ -318,9 +324,14 @@ class _SessionCard extends StatelessWidget {
                   onPressed: onFixAccess,
                 )
               else
-                Row(
+                Flex(
+                  direction: stacked ? Axis.vertical : Axis.horizontal,
+                  mainAxisSize: stacked ? MainAxisSize.min : MainAxisSize.max,
+                  crossAxisAlignment:
+                      stacked ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
                   children: [
-                    Expanded(
+                    Flexible(
+                      fit: stacked ? FlexFit.loose : FlexFit.tight,
                       child: FluoButton(
                         label: newCount > 0
                             ? 'Review $newCount new'
@@ -331,15 +342,17 @@ class _SessionCard extends StatelessWidget {
                       ),
                     ),
                     if (status != CaptureStatus.unsupported) ...[
-                      const SizedBox(width: 8),
+                      stacked ? const SizedBox(height: 8) : const SizedBox(width: 8),
                       status == CaptureStatus.paused
                           ? FluoButton(
                               label: 'Resume',
+                              expand: stacked,
                               hPad: 18,
                               onPressed: onResume,
                             )
                           : FluoButton(
                               label: 'Pause',
+                              expand: stacked,
                               hPad: 18,
                               onPressed: onPause,
                             ),
@@ -348,9 +361,14 @@ class _SessionCard extends StatelessWidget {
                 ),
               if (canChooseFolder && status != CaptureStatus.off) ...[
                 const SizedBox(height: 8),
-                Row(
+                Flex(
+                  direction: stacked ? Axis.vertical : Axis.horizontal,
+                  mainAxisSize: stacked ? MainAxisSize.min : MainAxisSize.max,
+                  crossAxisAlignment:
+                      stacked ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
                   children: [
-                    Expanded(
+                    Flexible(
+                      fit: stacked ? FlexFit.loose : FlexFit.tight,
                       child: FluoButton(
                         label: customFolder ? 'Change folder' : 'Choose folder',
                         expand: true,
@@ -358,8 +376,9 @@ class _SessionCard extends StatelessWidget {
                       ),
                     ),
                     if (customFolder) ...[
-                      const SizedBox(width: 8),
-                      Expanded(
+                      stacked ? const SizedBox(height: 8) : const SizedBox(width: 8),
+                      Flexible(
+                        fit: stacked ? FlexFit.loose : FlexFit.tight,
                         child: FluoButton(
                           label: 'Use default',
                           expand: true,

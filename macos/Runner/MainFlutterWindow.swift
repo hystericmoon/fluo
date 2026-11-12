@@ -7,9 +7,13 @@ class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
-    // Phone-first UI: open tall and narrow, and never smaller than a small phone.
+    // Desktop layout (sidebar, grid, inspector) from 900 wide; narrower windows
+    // fall back to the phone layout, down to a small phone.
     self.minSize = NSSize(width: 360, height: 560)
-    self.setContentSize(NSSize(width: 460, height: 860))
+    // Always open at the desktop size: a saved phone-sized frame from earlier
+    // builds would hide the desktop layout.
+    self.isRestorable = false
+    self.setContentSize(NSSize(width: 1280, height: 820))
     self.center()
 
     RegisterGeneratedPlugins(registry: flutterViewController)

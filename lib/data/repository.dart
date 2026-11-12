@@ -269,6 +269,32 @@ class FluoRepo {
     });
   }
 
+  /// Moves screens to the end of another album's flow, keeping their order,
+  /// pins and marks (they hang off the screen, not the album). Returns how
+  /// many moved. Does nothing if the target is the same album or missing.
+  int moveShots(List<String> shotIds, String toAlbumId) {
+    if (getAlbum(toAlbumId) == null) return 0;
+    var moved = 0;
+    _tx(() {
+      final from = <String>{};
+      var pos = _db
+          .select('SELECT COALESCE(MAX(position), -1) + 1 AS p FROM shots WHERE album_id = ?', [toAlbumId])
+          .first['p'] as int;
+      for (final id in shotIds) {
+        final s = getShot(id);
+        if (s == null || s.albumId == toAlbumId) continue;
+        from.add(s.albumId);
+        _db.execute('UPDATE shots SET album_id = ?, position = ? WHERE id = ?', [toAlbumId, pos++, id]);
+        moved++;
+      }
+      if (moved > 0) {
+        _touch(toAlbumId);
+        from.forEach(_touch);
+      }
+    });
+    return moved;
+  }
+
   /// Deletes discarded screenshots, their rows and their files. One album, or
   /// all of them. Everything is done before this returns (the files are
   /// removed synchronously: there are only a few). Returns how many.

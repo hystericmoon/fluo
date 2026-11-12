@@ -28,6 +28,10 @@ The floor (from `docs/spec.md`): WCAG AA contrast, 44dp touch targets, every ges
 | Drag to draw a box, arrow or redaction | "Add a box / an arrow / a redaction in the middle", then Move (four arrows) and Wider, Narrower, Taller, Shorter (Longer, Shorter for an arrow) |
 | Tap a mark on the image to select it | The "Marks on this screen" list: every mark is a button |
 | Drag crop corners or the frame | Eight custom actions on the crop frame ("Trim more from the left", "Trim less from the top", and so on, in 5% steps) |
+| Shift or Cmd click to select several screens (desktop) | The **Select** button (clicks then toggle), **Select all** button, Space toggles the focused screen, Cmd+A. Tiles announce "selected". |
+| Double click a screen to edit it (desktop) | The **Edit marks** button in the inspector, or Enter. |
+| Keyboard shortcuts in the desktop editor (1-6 tools, Cmd+Z, Delete, Esc) | The tool rail, Undo, delete-mark and Done buttons. |
+| Keyboard shortcuts (desktop: K/D/arrows in Triage; arrows, Space, Enter, Delete, G, F, R in the album) | Every one has a button on screen. Single keys do nothing while a text field has focus. |
 | Draw a freehand pen stroke | **None.** A freehand line is inherently a finger gesture. A box or an arrow does the same job with buttons. The editor says "Draw on the screenshot with your finger." |
 
 ## Time limits

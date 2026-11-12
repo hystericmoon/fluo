@@ -38,7 +38,8 @@ class _AlbumScreenState extends State<AlbumScreen> {
   bool _reorder = false;
 
   Future<void> _push(Widget page) async {
-    await Navigator.of(context).push(fluoRoute(page));
+    await Navigator.of(context)
+        .push(fluoRoute(page, maxWidth: page is EditorScreen ? null : 640));
     if (mounted) setState(() {});
   }
 
@@ -47,19 +48,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
   /// Delete lives behind a menu in the header, away from the grid a thumb is
   /// scrolling. The hold-to-confirm (or tap twice) stays inside it.
   Future<void> _options() async {
-    final delete = await showGeneralDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Close album options',
-      barrierColor: const Color(0xB3000000),
-      transitionDuration: const Duration(milliseconds: 120),
-      pageBuilder: (ctx, _, _) => const _AlbumOptions(),
-      transitionBuilder: (ctx, anim, _, child) =>
-          (MediaQuery.maybeDisableAnimationsOf(ctx) ?? false)
-              ? child
-              : FadeTransition(opacity: anim, child: child),
-    );
-    if (delete == true && mounted) {
+    if (await showAlbumOptions(context) && mounted) {
       Navigator.of(context).pop(DeleteAlbumRequest(widget.albumId));
     }
   }
@@ -118,14 +107,14 @@ class _AlbumScreenState extends State<AlbumScreen> {
           ),
           const SizedBox(height: 14),
           if (pending > 0) ...[
-            _PendingBanner(
+            PendingBanner(
               count: pending,
               onReview: () => _push(TriageScreen(albumId: widget.albumId)),
             ),
             const SizedBox(height: 14),
           ],
           if (kept.isNotEmpty) ...[
-            _Segmented(
+            GridFlowSegmented(
               flow: flow,
               onChanged: (f) =>
                   setState(() => _mode = f ? _Mode.flow : _Mode.grid),
@@ -172,7 +161,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
           ],
           Expanded(
             child: kept.isEmpty
-                ? _EmptyAlbum(hasPending: pending > 0)
+                ? EmptyAlbum(hasPending: pending > 0)
                 : shown.isEmpty
                 ? Center(
                     child: Text(
@@ -197,7 +186,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                             final canMove =
                                 flow && filter == null && kept.length > 1;
                             final k = n - 1; // place among the kept screens
-                            return _Tile(
+                            return ShotTile(
                               shot: shot,
                               number: flow ? n : null,
                               pins: pins[shot.id] ?? const [],
@@ -234,8 +223,25 @@ class _AlbumScreenState extends State<AlbumScreen> {
   }
 }
 
-class _Tile extends StatelessWidget {
-  const _Tile({
+/// The album's menu (Delete, behind a hold). True once delete is confirmed.
+Future<bool> showAlbumOptions(BuildContext context) async =>
+    await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close album options',
+      barrierColor: const Color(0xB3000000),
+      transitionDuration: const Duration(milliseconds: 120),
+      pageBuilder: (ctx, _, _) => const _AlbumOptions(),
+      transitionBuilder: (ctx, anim, _, child) =>
+          (MediaQuery.maybeDisableAnimationsOf(ctx) ?? false)
+              ? child
+              : FadeTransition(opacity: anim, child: child),
+    ) ??
+    false;
+
+class ShotTile extends StatelessWidget {
+  const ShotTile({
+    super.key,
     required this.shot,
     required this.number,
     required this.pins,
@@ -243,8 +249,13 @@ class _Tile extends StatelessWidget {
     this.reorder = false,
     this.onEarlier,
     this.onLater,
+    this.selected,
   });
   final Shot shot;
+
+  /// Desktop multi-select: null when the tile is not selectable, else whether
+  /// it is picked. Drawn as an accent ring and a check, and announced.
+  final bool? selected;
   final int? number;
   final List<Pin> pins;
   final VoidCallback onTap;
@@ -263,6 +274,7 @@ class _Tile extends StatelessWidget {
     final visual = Pressable(
       radius: 10,
       label: '${number != null ? 'Screen $number: ' : ''}$name, $pinText',
+      selected: selected,
       onTap: onTap,
       // TalkBack's actions menu: the same moves the buttons make.
       actions: {
@@ -279,12 +291,21 @@ class _Tile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: FluoColors.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF3F3F46)),
+                border: selected == true
+                    ? Border.all(color: context.accent.color, width: 3)
+                    : Border.all(color: const Color(0xFF3F3F46)),
               ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   ShotImage(path: shot.originalPath, cacheWidth: 330),
+                  if (selected == true)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Icon(LucideIcons.circleCheck,
+                          size: 22, color: context.accent.color),
+                    ),
                   if (number != null)
                     Positioned(
                       left: 6,
@@ -384,8 +405,8 @@ class _Tile extends StatelessWidget {
   }
 }
 
-class _PendingBanner extends StatelessWidget {
-  const _PendingBanner({required this.count, required this.onReview});
+class PendingBanner extends StatelessWidget {
+  const PendingBanner({super.key, required this.count, required this.onReview});
   final int count;
   final VoidCallback onReview;
 
@@ -421,8 +442,8 @@ class _PendingBanner extends StatelessWidget {
   }
 }
 
-class _EmptyAlbum extends StatelessWidget {
-  const _EmptyAlbum({required this.hasPending});
+class EmptyAlbum extends StatelessWidget {
+  const EmptyAlbum({super.key, required this.hasPending});
   final bool hasPending;
 
   @override
@@ -451,8 +472,8 @@ class _EmptyAlbum extends StatelessWidget {
   }
 }
 
-class _Segmented extends StatelessWidget {
-  const _Segmented({required this.flow, required this.onChanged});
+class GridFlowSegmented extends StatelessWidget {
+  const GridFlowSegmented({super.key, required this.flow, required this.onChanged});
   final bool flow;
   final ValueChanged<bool> onChanged;
 

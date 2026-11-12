@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../capture/capture_scope.dart';
@@ -5,6 +6,7 @@ import '../data/models.dart';
 import '../data/repository.dart';
 import '../data/repo_scope.dart';
 import '../data/triage_session.dart';
+import '../desktop/desktop_scope.dart';
 import '../motion/motion.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
@@ -76,6 +78,11 @@ class _TriageScreenState extends State<TriageScreen> {
   }
 
   void _done() {
+    // The desktop shell already shows the album beside this screen.
+    if (DesktopScope.isWide(context)) {
+      Navigator.of(context).maybePop();
+      return;
+    }
     // Replace this screen so Back from the album returns to Albums.
     Navigator.of(context)
         .pushReplacement(fluoRoute(AlbumScreen(albumId: widget.albumId)));
@@ -91,7 +98,7 @@ class _TriageScreenState extends State<TriageScreen> {
         ? '${album?.name ?? ''} · ${t.total == 0 ? 'nothing to review' : 'all sorted'}'
         : '${album?.name ?? ''} · ${t.position} of ${t.total}';
 
-    return ScreenFrame(
+    final frame = ScreenFrame(
       child: LayoutBuilder(
         builder: (context, box) {
           // The card takes the room the rest of the screen leaves, so with the
@@ -208,7 +215,9 @@ class _TriageScreenState extends State<TriageScreen> {
                 if (cur != null)
                   Center(
                     child: Text(
-                      'Flick right to keep, left to discard, or use the buttons',
+                      DesktopScope.isDesktop(context)
+                          ? 'K or → keeps, D or ← discards, ⌘Z undoes, Esc goes back'
+                          : 'Flick right to keep, left to discard, or use the buttons',
                       textAlign: TextAlign.center,
                       style: fs(13, c: FluoColors.fgMuted),
                     ),
@@ -219,6 +228,31 @@ class _TriageScreenState extends State<TriageScreen> {
         );
         },
       ),
+    );
+    if (!DesktopScope.isDesktop(context)) return frame;
+    // Desktop keyboard route: every key has a button on screen as well. Single
+    // keys do nothing while a text field has focus, so naming a shot is safe.
+    void guarded(VoidCallback f) {
+      if (!typingInTextField()) f();
+    }
+
+    final cur2 = t.current;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            Navigator.of(context).maybePop(),
+        if (cur2 != null) ...{
+          const SingleActivator(LogicalKeyboardKey.keyK): () => guarded(() => _do((t) => t.keep())),
+          const SingleActivator(LogicalKeyboardKey.arrowRight): () => guarded(() => _do((t) => t.keep())),
+          const SingleActivator(LogicalKeyboardKey.keyD): () => guarded(() => _do((t) => t.discard())),
+          const SingleActivator(LogicalKeyboardKey.arrowLeft): () => guarded(() => _do((t) => t.discard())),
+        },
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): () =>
+            guarded(() {
+              if (t.canUndo) _do((t) => t.undo());
+            }),
+      },
+      child: Focus(autofocus: true, child: frame),
     );
   }
 }

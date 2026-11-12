@@ -1,5 +1,15 @@
 Last updated 2026-11-12
 
+## macOS desktop layout (branch claude/macos-desktop-ui, build 0.1.0+3)
+- DONE: the Mac app has its own layout in windows 900 wide or more: sidebar (wordmark, New album, session card, albums, Settings), centre album grid or flow with severity chips, and an inspector (preview, name, caption, pins, Edit marks, Discard; summary when nothing is selected, bulk Discard for a multi-selection). Narrower windows and Android keep the phone UI. Code: `lib/desktop/` (`DesktopShell`, `DesktopScope`); gated by `FluoApp(desktop:)`, set only from `main()` on macOS, so tests and phones are untouched. Window opens 1280x820.
+- Triage, Editor, Export and Settings open over the shell (centred column, Editor full width). Triage keys: K or right keeps, D or left discards, Cmd+Z undoes, Esc back.
+- Shell keys: Cmd+N new album, Cmd+E export, Cmd+, settings, Cmd+A select all, arrows, Space, Enter, Delete, G/F grid/flow, R review, Esc clears. Single keys are ignored while typing. Menu bar: Album (New, Review, Export) and Screens (Grid, Flow); Preferences opens Settings.
+- Multi-select: Shift/Cmd click, Select mode, Select all. Actions on a selection: Export N screens (`ExportScreen(only:)`, `ExportService` `only:` renumbers from 1), Move to album (`FluoRepo.moveShots`, appends in order, pins and marks go along), batch Discard with the undo fuse.
+- Desktop editor (wide windows): tool rail on the left, picture filling the middle, details panel on the right (same controls and state as the phone editor). Keys 1-6 pick tools, Cmd+Z undo, Delete removes the selected mark, Esc closes; none fire while typing.
+- Desktop Export is two columns (formats | options, notice, action); Settings puts Appearance beside Updates.
+- Pointer: hover tint and pointing cursor on every `Pressable`.
+- Checked on a real window: the shell and the sidebar session card only. Not clicked through by hand: Triage, the desktop editor, Export, Move to album and the menu bar (widget tests cover them). Cmd+A and Cmd+N may be taken by the native menu before Dart sees them; the buttons cover that.
+
 ## Where things stand (2026-11-12, hand-off to a local session)
 PRs #13 and #14 are merged into main. Everything is pushed. Nothing below has run on hardware yet. In order:
 1. Build main on the Mac and install on the phone (`flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk`). The build number is now `0.1.0+2`, so Settings shows `0.1.0 (2)` on this build and `0.1.0 (1)` on older ones; bump it again for each build you install. On a sideloaded copy Settings should show only a Version note, and the Album header should have a `...` (Album options) button next to Export.

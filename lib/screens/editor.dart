@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../data/models.dart';
@@ -12,6 +13,7 @@ import '../edit/image_loader.dart';
 import '../edit/quick_pan.dart';
 import '../edit/render.dart';
 import '../edit/viewport.dart';
+import '../desktop/desktop_scope.dart';
 import '../theme/tokens.dart';
 import '../ui/kit.dart';
 import '../theme/accent.dart';
@@ -76,6 +78,9 @@ class _EditorScreenState extends State<EditorScreen> {
         final kept = repo.shotsIn(s.shot.albumId, status: ShotStatus.kept);
         final idx = kept.indexWhere((k) => k.id == s.shot.id);
         final name = s.shot.name.isEmpty ? 'Untitled' : s.shot.name;
+        if (DesktopScope.isWide(context)) {
+          return _wide(s, '${idx < 0 ? '' : '${idx + 1} of ${kept.length} · '}${album?.name ?? ''}', name);
+        }
         return Container(
           color: FluoColors.bg,
           child: SafeArea(
@@ -130,11 +135,74 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  Widget _canvas(EditorState s) {
+  /// Desktop layout: tools down the left, the picture filling the middle, and
+  /// the details (pin, marks, caption) in a panel on the right. Same controls
+  /// and state as the phone layout; keys are shortcuts for them.
+  Widget _wide(EditorState s, String subtitle, String name) {
+    void guarded(VoidCallback f) {
+      if (!typingInTextField()) f();
+    }
+
+    final tools = EditTool.values;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop(),
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): () => guarded(() {
+              if (s.canUndo) s.undo();
+            }),
+        const SingleActivator(LogicalKeyboardKey.delete): () => guarded(s.deleteSelected),
+        const SingleActivator(LogicalKeyboardKey.backspace): () => guarded(s.deleteSelected),
+        for (var i = 0; i < tools.length; i++)
+          SingleActivator(LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + i)): () =>
+              guarded(() => s.setTool(tools[i])),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Container(
+          color: FluoColors.bg,
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          child: Column(children: [
+            ScreenHeader(
+              title: name,
+              subtitle: subtitle,
+              trailing: [
+                FluoIconButton(
+                  icon: LucideIcons.undo2,
+                  label: 'Undo last mark',
+                  onPressed: s.canUndo ? s.undo : null,
+                ),
+                FluoButton(
+                  label: 'Done',
+                  kind: BtnKind.primary,
+                  hPad: 18,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                SingleChildScrollView(child: _toolbar(s, vertical: true)),
+                const SizedBox(width: 16),
+                Expanded(child: _canvas(s, height: null)),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 340,
+                  child: SingleChildScrollView(child: _panel(s, wide: true)),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _canvas(EditorState s, {double? height = 400}) {
     final summary =
         '${s.shot.name.isEmpty ? 'Screenshot' : s.shot.name} with ${s.pins.length} ${s.pins.length == 1 ? 'pin' : 'pins'} and ${s.annotations.length} other ${s.annotations.length == 1 ? 'mark' : 'marks'}';
     return Container(
-      height: 400,
+      height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(0xFF121215),
@@ -153,13 +221,18 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  Widget _toolbar(EditorState s) => Semantics(
+  Widget _toolbar(EditorState s, {bool vertical = false}) => Semantics(
         container: true,
         explicitChildNodes: true, // controls inside stay separately focusable
         label: 'Edit tools',
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        child: Flex(
+          direction: vertical ? Axis.vertical : Axis.horizontal,
+          mainAxisSize: vertical ? MainAxisSize.min : MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
           for (final t in EditTool.values) ...[
-            if (t != EditTool.crop) const SizedBox(width: 8),
+            if (t != EditTool.crop)
+              vertical ? const SizedBox(height: 10) : const SizedBox(width: 8),
             Pressable(
               radius: 12,
               label: _tools[t]!.$2,
@@ -203,7 +276,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   // ---- panel -------------------------------------------------------------
 
-  Widget _panel(EditorState s) {
+  Widget _panel(EditorState s, {bool wide = false}) {
     final Widget top;
     if (s.tool == EditTool.crop) {
       top = _cropPanel(s);
@@ -220,10 +293,14 @@ class _EditorScreenState extends State<EditorScreen> {
       label: 'Details',
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: FluoColors.surface,
-          border: Border(top: BorderSide(color: FluoColors.border)),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          border: wide
+              ? Border.all(color: FluoColors.border)
+              : const Border(top: BorderSide(color: FluoColors.border)),
+          borderRadius: wide
+              ? BorderRadius.circular(14)
+              : const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           top,
