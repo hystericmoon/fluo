@@ -1,5 +1,11 @@
 Last updated 2026-11-12
 
+## Hardware session 2026-11-12 (local Mac, Galaxy A55)
+- PR #15 merged (build number `0.1.0+2`); main later at `0.1.0+3` after PR #16. Analyze clean; tests passed (513 before PR #16, 521 after).
+- Phone: debug `0.1.0+2` installed and launched (versionCode 2, existing albums intact). It felt laggy: that was a debug (JIT) build. A release build `0.1.0+3` was installed; lag on release not yet judged.
+- macOS: `flutter build macos --debug` succeeds. DMG script not run: no Developer ID in the keychain yet.
+- NOT done (needs hands): Settings and Album-options check, keyboard checks, recents, real screenshot gesture, TalkBack script, Mac folder picker across restart, real drag and drop, Mac desktop layout in a real window, DMG notarisation.
+
 ## macOS desktop layout (branch claude/macos-desktop-ui, build 0.1.0+3)
 - DONE: the Mac app has its own layout in windows 900 wide or more: sidebar (wordmark, New album, session card, albums, Settings), centre album grid or flow with severity chips, and an inspector (preview, name, caption, pins, Edit marks, Discard; summary when nothing is selected, bulk Discard for a multi-selection). Narrower windows and Android keep the phone UI. Code: `lib/desktop/` (`DesktopShell`, `DesktopScope`); gated by `FluoApp(desktop:)`, set only from `main()` on macOS, so tests and phones are untouched. Window opens 1280x820.
 - Triage, Editor, Export and Settings open over the shell (centred column, Editor full width). Triage keys: K or right keeps, D or left discards, Cmd+Z undoes, Esc back.
