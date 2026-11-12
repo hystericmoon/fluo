@@ -46,6 +46,20 @@ void main() {
     expect(find.text('0 screens · Oct 20'), findsOneWidget);
   });
 
+  testWidgets('an empty album shows one empty outline, and names line up whatever the screen count', (tester) async {
+    setPhone(tester);
+    final repo = seeded();
+    final full = repo.createAlbum('Has screens');
+    await seedKeptPngShots(tester, repo, full.id, 2);
+    await tester.pumpWidget(host(AlbumsScreen(now: fixedNow), repo: repo));
+    await tester.pump();
+    expect(find.byIcon(LucideIcons.image), findsNWidgets(2), reason: 'one empty outline per empty album, no loading-style bars');
+    final lefts = {
+      for (final n in ['Checkout flow review', 'Onboarding audit', 'Has screens']) tester.getTopLeft(find.text(n)).dx,
+    };
+    expect(lefts.length, 1, reason: 'the names start at the same place: $lefts');
+  });
+
   testWidgets('New album asks for a name, creates it and refuses a blank name', (tester) async {
     setPhone(tester);
     final repo = memRepo();

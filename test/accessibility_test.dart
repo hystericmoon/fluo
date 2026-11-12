@@ -152,12 +152,14 @@ void main() {
       h.dispose();
     });
 
-    testWidgets('Album row swipe: a "Delete album" action, and Hold-to-delete inside the album', (tester) async {
+    testWidgets('Album row swipe: a "Delete album" action, and Hold-to-delete in the album menu', (tester) async {
       await setup(tester);
       final h = tester.ensureSemantics();
       await tester.pumpWidget(host(const AlbumsScreen(), repo: repo));
       expect(customActionLabels(tester), contains('Delete album'));
       await tester.pumpWidget(host(AlbumScreen(albumId: album.id), repo: repo));
+      await tester.tap(find.bySemanticsLabel('Album options'));
+      await tester.pumpAndSettle();
       expect(find.text('Hold to delete album'), findsOneWidget);
       expect(tester.getSemantics(find.bySemanticsLabel('Hold to delete album')).hint, contains('tap twice'));
       h.dispose();

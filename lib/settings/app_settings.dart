@@ -17,6 +17,7 @@ class AppSettings extends ChangeNotifier {
   static const _kAutoUpdate = 'auto_update';
   static const _kWifiOnly = 'wifi_only';
   static const _kLastUpdateCheck = 'last_update_check';
+  static const _kUpdatesUnsupported = 'updates_unsupported';
 
   final FluoRepo _repo;
   Accent _accent;
@@ -46,6 +47,17 @@ class AppSettings extends ChangeNotifier {
     if (v == _reduceMotion) return;
     _reduceMotion = v;
     _repo.setSetting(_kReduceMotion, '$v');
+    notifyListeners();
+  }
+
+  /// Set once a check finds this copy cannot update itself (not installed from
+  /// Google Play, or not Android). Kept, so Settings hides the update controls
+  /// from the first frame on later launches too, not only after a check.
+  bool get updatesUnsupported => _repo.getSetting(_kUpdatesUnsupported) == 'true';
+
+  void setUpdatesUnsupported(bool v) {
+    if (v == updatesUnsupported) return;
+    _repo.setSetting(_kUpdatesUnsupported, '$v');
     notifyListeners();
   }
 

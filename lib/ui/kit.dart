@@ -1,4 +1,5 @@
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
+import 'package:flutter/services.dart' show TextInputAction;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../data/models.dart';
@@ -420,8 +421,10 @@ class _Track extends StatelessWidget {
       );
 }
 
-/// Labelled text field with the mock's 3:1 border.
-class FluoField extends StatelessWidget {
+/// Labelled text field with the mock's 3:1 border. On focus the border takes
+/// the accent colour, so the field shows one clear edge (the package adds a
+/// soft ring around it). The keyboard's Done key closes the keyboard.
+class FluoField extends StatefulWidget {
   const FluoField({
     super.key,
     required this.label,
@@ -431,6 +434,9 @@ class FluoField extends StatelessWidget {
     this.fontSize = 15,
     this.onChanged,
     this.placeholder,
+    this.autocorrect = true,
+    this.onSubmitted,
+    this.autofocus = false,
   });
   final String label;
   final String initial;
@@ -440,35 +446,79 @@ class FluoField extends StatelessWidget {
   final Color fill;
   final double fontSize;
 
+  /// Off for names, where autocorrect rewrites words it does not know.
+  final bool autocorrect;
+
+  /// What the keyboard's action key does. By default it closes the keyboard.
+  final VoidCallback? onSubmitted;
+
+  /// Takes focus (and raises the keyboard) when it appears.
+  final bool autofocus;
+
+  @override
+  State<FluoField> createState() => _FluoFieldState();
+}
+
+class _FluoFieldState extends State<FluoField> {
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final focused = _focus.hasFocus;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Semantics(
           excludeSemantics: true,
-          child: Text(label, style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
+          child: Text(widget.label, style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
         ),
         const SizedBox(height: 6),
         SizedBox(
-          height: height,
+          height: widget.height,
           child: Semantics(
-            label: label,
+            label: widget.label,
             child: TextField(
-              initialValue: initial,
-              onChanged: onChanged,
-              placeholder: placeholder == null
+              focusNode: _focus,
+              initialValue: widget.initial,
+              onChanged: widget.onChanged,
+              autofocus: widget.autofocus,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                final go = widget.onSubmitted;
+                if (go == null) {
+                  _focus.unfocus();
+                } else {
+                  go();
+                }
+              },
+              autocorrect: widget.autocorrect,
+              placeholder: widget.placeholder == null
                   ? null
-                  : Text(placeholder!, style: fs(fontSize, c: FluoColors.fgMuted)),
-              style: fs(fontSize),
+                  : Text(widget.placeholder!, style: fs(widget.fontSize, c: FluoColors.fgMuted)),
+              style: fs(widget.fontSize),
               crossAxisAlignment: CrossAxisAlignment.center,
               textAlignVertical: TextAlignVertical.center,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: fill,
+                color: widget.fill,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: FluoColors.borderStrong),
+                border: Border.all(
+                  color: focused ? context.accent.color : FluoColors.borderStrong,
+                  width: focused ? 2 : 1,
+                ),
               ),
             ),
           ),
@@ -541,10 +591,28 @@ class ScreenFrame extends StatelessWidget {
   final EdgeInsets padding;
 
   @override
-  Widget build(BuildContext context) => Container(
-        color: FluoColors.bg,
-        child: SafeArea(child: Padding(padding: padding, child: child)),
-      );
+  Widget build(BuildContext context) {
+    // The system keyboard is not part of the layout by itself (Flutter only
+    // reports its height), so a focused field under it stays hidden. Lift the
+    // screen above it, and tell descendants the inset is handled so nothing
+    // pads for it twice. With the keyboard up the bottom safe area is already
+    // covered by the keyboard.
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    return Container(
+      color: FluoColors.bg,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: keyboard),
+        child: MediaQuery.removeViewInsets(
+          context: context,
+          removeBottom: true,
+          child: SafeArea(
+            bottom: keyboard == 0,
+            child: Padding(padding: padding, child: child),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 Widget backButton(BuildContext context, {String label = 'Back'}) =>

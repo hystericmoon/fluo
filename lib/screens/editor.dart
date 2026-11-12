@@ -80,9 +80,12 @@ class _EditorScreenState extends State<EditorScreen> {
           color: FluoColors.bg,
           child: SafeArea(
             bottom: false,
-            child: LayoutBuilder(
+            // Lift the editor above the keyboard so the caption and pin note
+            // fields stay in view while typing.
+            child: Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+              child: LayoutBuilder(
               builder: (context, box) => SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: box.maxHeight),
                   child: IntrinsicHeight(
@@ -93,7 +96,6 @@ class _EditorScreenState extends State<EditorScreen> {
                           ScreenHeader(
                             title: name,
                             subtitle: '${idx < 0 ? '' : '${idx + 1} of ${kept.length} · '}${album?.name ?? ''}',
-                            leading: backButton(context, label: 'Back to album'),
                             trailing: [
                               FluoIconButton(
                                 icon: LucideIcons.undo2,
@@ -121,6 +123,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 ),
               ),
             ),
+              ),
           ),
         );
       },
@@ -164,16 +167,34 @@ class _EditorScreenState extends State<EditorScreen> {
               onTap: () => s.setTool(t),
               builder: (_, _) {
                 final on = s.tool == t;
-                return Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: on ? context.accent.color : FluoColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: on ? context.accent.color : FluoColors.border),
+                // A short label under each icon: recognition over recall. The
+                // control already has this name for screen readers, so the text
+                // is hidden from them, and its size stops growing at 130% so it
+                // never outgrows the 50dp button.
+                return Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: on ? context.accent.color : FluoColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: on ? context.accent.color : FluoColors.border),
+                    ),
+                    child: Icon(_tools[t]!.$1, size: 22, color: on ? context.accent.onColor : FluoColors.fg),
                   ),
-                  child: Icon(_tools[t]!.$1, size: 22, color: on ? context.accent.onColor : FluoColors.fg),
-                );
+                  const SizedBox(height: 4),
+                  ExcludeSemantics(
+                    child: MediaQuery.withClampedTextScaling(
+                      maxScaleFactor: 1.3,
+                      child: Text(
+                        _tools[t]!.$2,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: fs(11, w: on ? FontWeight.w600 : FontWeight.w500, c: on ? FluoColors.fg : FluoColors.fgMuted),
+                      ),
+                    ),
+                  ),
+                ]);
               },
             ),
           ],

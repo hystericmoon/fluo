@@ -170,6 +170,18 @@ void main() {
       expect(find.text('Neon lime is the default theme. The FLUO logo stays lime.'), findsOneWidget);
     });
 
+    testWidgets('the five themes sit in one row, each named, with a check on the chosen one', (tester) async {
+      await open(tester);
+      final tops = {
+        for (final n in ['Neon lime', 'Violet', 'Cyan', 'Orange', 'Pink']) n: tester.getTopLeft(find.text(n)).dy,
+      };
+      expect(tops.values.toSet().length, 1, reason: 'one row, not 2 + 2 + 1: $tops');
+      expect(find.byIcon(LucideIcons.check), findsOneWidget, reason: 'the chosen theme is marked by more than colour');
+      await tester.tap(find.text('Pink'));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(LucideIcons.check), findsOneWidget);
+    });
+
     testWidgets('privacy statement is shown and the bundled font licences open offline', (tester) async {
       await open(tester);
       expect(find.textContaining('Nothing leaves the phone except what you choose to share'), findsOneWidget);
@@ -260,12 +272,26 @@ void main() {
       expect(src.installs, 1);
     });
 
-    testWidgets('a sideloaded copy says updates come through Google Play', (tester) async {
+    testWidgets('a copy that cannot update itself drops the update controls once a check says so', (tester) async {
       final src = FakeUpdateSource()..unsupported = true;
       await open(tester, update: src);
       await tester.tap(find.text('Check for updates'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Updates come through Google Play'), findsOneWidget);
+      expect(find.text('Auto-update'), findsNothing);
+      expect(find.text('Wi-Fi only'), findsNothing);
+      expect(find.text('Check for updates'), findsNothing);
+      expect(find.textContaining('This copy does not update itself'), findsOneWidget);
+      expect(find.textContaining('Version 0.1.0'), findsOneWidget);
+    });
+
+    testWidgets('a copy known to be sideloaded shows no update controls from the first frame', (tester) async {
+      setPhone(tester);
+      repo = memRepo();
+      final st = AppSettings(repo)..setUpdatesUnsupported(true);
+      await tester.pumpWidget(host(const SettingsScreen(), repo: repo, settings: st));
+      await tester.pump();
+      expect(find.text('Auto-update'), findsNothing);
+      expect(find.textContaining('This copy does not update itself'), findsOneWidget);
     });
 
     testWidgets('a failed check says so and can be retried', (tester) async {

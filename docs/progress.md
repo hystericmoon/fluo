@@ -1,6 +1,22 @@
-Last updated 2026-11-10
+Last updated 2026-11-12
 
-## Next up (2026-11-10, main at 97e31e6 plus branch claude/macos-copy-and-signing)
+## Where things stand (2026-11-12, hand-off to a local session)
+PRs #13 and #14 are merged into main. Everything is pushed. Nothing below has run on hardware yet. In order:
+1. Build main on the Mac and install on the phone (`flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk`). Settings shows `0.1.0 (1)` for every build because `pubspec.yaml` still says `0.1.0+1`; bump the build number (for example `0.1.0+2`) so builds can be told apart. On a sideloaded copy Settings should show only a Version note, and the Album header should have a `...` (Album options) button next to Export.
+2. Check on the phone: the keyboard never covers a field (Triage name, editor caption and pin note, New album); in Triage the keyboard's check key keeps the shot, goes to the next card and the keyboard stays up; the buttons do not raise it.
+3. TalkBack script in `docs/accessibility.md`; swipe the app out of recents; a real screenshot gesture.
+4. macOS: folder picker across a restart; a real drag and drop under the sandbox; then `DEVELOPER_ID=... NOTARY_PROFILE=... tool/make_dmg.sh` (setup in `docs/release.md`, never run).
+5. Open: the audit page said Triage had no drag cue; it does (Keep and Discard stamps while dragging), only the hint text was missing, now fixed.
+Dev environment note: the cloud clone only fetched `main`, so the stop hook thought pushed branches were unpushed. `git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'` fixes it. A fresh clone does not have that.
+
+## 2026-11-12 UI audit (PR #14)
+- Keyboard: fields stay above the on-screen keyboard (`ScreenFrame`, Editor); one accent border on focus; Triage card shrinks to fit. In Triage the keyboard action key (a check mark) keeps the shot and goes to the next card with the keyboard up (`_typing`); the buttons never raise it.
+- Settings: update controls are replaced by a Version note when the copy cannot self-update (persisted `updates_unsupported`; sideloaded APK and desktop). Theme chips are one row of five swatches.
+- Album: severity filters hidden until a pin exists (plain "N screens" shows); Delete album lives in an "Album options" menu in the header (hold, or tap twice, stays inside it). Albums: an empty album shows one empty outline.
+- Editor: short labels under the tool icons; the duplicate back arrow is gone (Done is the exit). Triage hint says which way keeps.
+- Needs a device: the keyboard staying up between Triage cards, keyboard height on a real IME, and the TalkBack script.
+
+## 2026-11-10 Mac copy and signing (PR #13, merged)
 - DONE here: Settings privacy text now says "Mac" on macOS (`CaptureCopy.device`, injected through `CaptureScope`; session-card copy was already platform-aware). `tool/make_dmg.sh` now signs (hardened runtime), notarises and staples when `DEVELOPER_ID` and `NOTARY_PROFILE` are set; setup steps in `docs/release.md`. The signing path has NOT been run (needs a Mac and the Apple Developer ID).
 - Needs a person on hardware: TalkBack script (`docs/accessibility.md`), swipe the app out of recents, a real screenshot gesture; on the Mac, the folder picker across a restart and a real drag-drop under the sandbox.
 - `test/mac_folder_test.dart` "unreadable default folder" fails when run as root (chmod 000 is still readable); passes unprivileged, as in CI.
@@ -16,7 +32,7 @@ Branch `session-10-release` (PR #10, stacked on session-9-settings) holds everyt
 2. Then check the remaining device risks below: brand file-name heuristic (`ScreenshotFilter`), service surviving idle, Android 14 "selected photos", watching-notification icon.
 3. Fluo ships as a sideloaded APK signed with the debug key (no store release). `docs/privacy.md` only matters if that changes.
 Toolchain after a clear: Flutter 3.47.9 in /opt/tc/flutter, Android SDK 36 in /opt/tc/android (ANDROID_HOME). Run `git config --global --add safe.directory /opt/tc/flutter`. Do not run two gradle builds at once (lock clash).
-The stop hook miscounts unpushed commits here; check `git ls-remote origin <branch>` against `git rev-parse HEAD`.
+The stop hook miscounted unpushed commits because the clone only tracked `main` (fixed with a fetch refspec, see the top).
 User asked to pause and resume at 12:20am; no time zone given, so no reminder was scheduled.
 
 ## Open items

@@ -55,8 +55,25 @@ class _TriageScreenState extends State<TriageScreen> {
     super.dispose();
   }
 
-  void _do(void Function(TriageSession t) action) =>
-      setState(() => action(_t!));
+  /// True after the keyboard's action key kept a shot: the next card's name
+  /// field then takes focus, so naming a batch is type, enter, type, enter and
+  /// the keyboard never closes. Any other action (the buttons) clears it, so
+  /// the keyboard does not pop up by itself.
+  bool _typing = false;
+
+  void _do(void Function(TriageSession t) action) {
+    _typing = false;
+    setState(() => action(_t!));
+  }
+
+  /// The keyboard's action key (a check mark, like the Keep button): keep this
+  /// shot and go straight to the next one.
+  void _keepFromKeyboard() {
+    setState(() {
+      _typing = true;
+      _t!.keep();
+    });
+  }
 
   void _done() {
     // Replace this screen so Back from the album returns to Albums.
@@ -76,7 +93,18 @@ class _TriageScreenState extends State<TriageScreen> {
 
     return ScreenFrame(
       child: LayoutBuilder(
-        builder: (context, box) => SingleChildScrollView(
+        builder: (context, box) {
+          // The card takes the room the rest of the screen leaves, so with the
+          // keyboard up the name field and the Keep and Discard buttons stay
+          // in view (the card gets shorter, never the controls). Everything
+          // but the card is about 260dp at normal text size.
+          final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
+          final cardHeight = (box.maxHeight - 260 * textScale).clamp(180.0, 500.0);
+          return SingleChildScrollView(
+          // The name field's focus ring is drawn 3dp outside the field; the
+          // default clip would cut it at the screen margin.
+          clipBehavior: Clip.none,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: box.maxHeight),
             child: Column(
@@ -92,7 +120,8 @@ class _TriageScreenState extends State<TriageScreen> {
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 500,
+                  key: const ValueKey('triage-card'),
+                  height: cardHeight,
                   child: cur == null
                       ? _AllSorted(
                           kept: t.keptCount,
@@ -118,6 +147,9 @@ class _TriageScreenState extends State<TriageScreen> {
                     height: 48,
                     fill: FluoColors.surface,
                     fontSize: 16,
+                    autocorrect: false,
+                    autofocus: _typing,
+                    onSubmitted: _keepFromKeyboard,
                     onChanged: t.rename,
                   ),
                   const SizedBox(height: 16),
@@ -176,7 +208,7 @@ class _TriageScreenState extends State<TriageScreen> {
                 if (cur != null)
                   Center(
                     child: Text(
-                      'Flick the card left or right, or use the buttons',
+                      'Flick right to keep, left to discard, or use the buttons',
                       textAlign: TextAlign.center,
                       style: fs(13, c: FluoColors.fgMuted),
                     ),
@@ -184,7 +216,8 @@ class _TriageScreenState extends State<TriageScreen> {
               ],
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }
