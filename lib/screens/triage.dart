@@ -208,7 +208,7 @@ class _TriageScreenState extends State<TriageScreen> {
                 if (cur != null)
                   Center(
                     child: Text(
-                      'Flick the card left or right, or use the buttons',
+                      'Flick right to keep, left to discard, or use the buttons',
                       textAlign: TextAlign.center,
                       style: fs(13, c: FluoColors.fgMuted),
                     ),

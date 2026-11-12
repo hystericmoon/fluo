@@ -68,12 +68,10 @@ class _Appearance extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text('Color theme', style: fs(13, w: FontWeight.w500, c: FluoColors.fgMuted)),
           const SizedBox(height: 8),
-          LayoutBuilder(builder: (context, box) {
-            final w = (box.maxWidth - 8) / 2;
-            return Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final a in Accent.all) SizedBox(width: w, child: _themeButton(a, a == current)),
-            ]);
-          }),
+          // One row of five swatches (a 2 + 2 + 1 grid left Pink alone).
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (final a in Accent.all) Expanded(child: _themeButton(a, a == current)),
+          ]),
           const SizedBox(height: 8),
           Text('Neon lime is the default theme. The FLUO logo stays lime.',
               style: fs(13, c: FluoColors.fgMuted)),
@@ -127,26 +125,42 @@ class _Appearance extends StatelessWidget {
     ]);
   }
 
+  /// A round swatch with the name under it. The selected one has a ring and a
+  /// check, so it never relies on colour alone. The tap area is the whole
+  /// column (about 70 x 70dp).
   Widget _themeButton(Accent a, bool on) {
     return Pressable(
       radius: 12,
       selected: on,
       label: a.name,
       onTap: () => settings.setAccent(a),
-      builder: (_, _) => Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: on ? a.soft : null,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: on ? a.color : FluoColors.borderStrong),
-        ),
+      builder: (_, _) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         child: ExcludeSemantics(
-          child: Row(children: [
-            Container(width: 18, height: 18, decoration: BoxDecoration(color: a.color, shape: BoxShape.circle)),
-            const SizedBox(width: 10),
-            Expanded(child: Text(a.name, style: fs(14, w: FontWeight.w500))),
-            if (on) Icon(LucideIcons.check, size: 16, color: a.text),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: a.color,
+                shape: BoxShape.circle,
+                border: Border.all(color: on ? FluoColors.fg : Colors.transparent, width: 2),
+              ),
+              child: on ? Icon(LucideIcons.check, size: 20, color: a.onColor) : null,
+            ),
+            const SizedBox(height: 6),
+            // Two lines at most ("Neon lime"), and the size stops growing at
+            // 130% so five names always fit the row.
+            MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: Text(
+                a.name,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: fs(12, w: on ? FontWeight.w600 : FontWeight.w500, c: on ? FluoColors.fg : FluoColors.fgMuted),
+              ),
+            ),
           ]),
         ),
       ),

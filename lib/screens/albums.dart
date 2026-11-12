@@ -388,7 +388,7 @@ class _AlbumRow extends StatelessWidget {
   final String name;
   final String meta;
 
-  /// Up to three kept screens. Empty slots show a placeholder.
+  /// Up to three kept screens. None shows one empty outline.
   final List<String> thumbs;
   final VoidCallback onTap;
 
@@ -403,45 +403,18 @@ class _AlbumRow extends StatelessWidget {
     child: ExcludeSemantics(child: ShotImage(path: path, cacheWidth: 80)),
   );
 
-  Widget _thumb(bool lime, Color accent) => Container(
+  /// An album with no screens: one empty outline, not grey bars that read as
+  /// "still loading".
+  Widget _empty() => Container(
     width: 34,
     height: 60,
-    padding: const EdgeInsets.all(5),
+    alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: const Color(0xFF202024),
       borderRadius: BorderRadius.circular(5),
-      border: Border.all(color: FluoColors.border),
+      border: Border.all(color: FluoColors.borderStrong),
     ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 4,
-          decoration: BoxDecoration(
-            color: const Color(0xFF3F3F46),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(height: 3),
-        FractionallySizedBox(
-          widthFactor: 0.6,
-          child: Container(
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFF3F3F46),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-        const Spacer(),
-        Container(
-          height: 8,
-          decoration: BoxDecoration(
-            color: lime ? accent : const Color(0xFF3F3F46),
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-      ],
+    child: const ExcludeSemantics(
+      child: Icon(LucideIcons.image, size: 16, color: FluoColors.fgMuted),
     ),
   );
 
@@ -460,16 +433,18 @@ class _AlbumRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var i = 0; i < 3; i++) ...[
-                  if (i > 0) const SizedBox(width: 4),
-                  i < thumbs.length
-                      ? _real(thumbs[i])
-                      : _thumb(i == 0 && thumbs.isEmpty, context.accent.color),
+            // Fixed width, so the names line up whatever the screen count.
+            SizedBox(
+              width: 34 * 3 + 4 * 2,
+              child: Row(
+                children: [
+                  if (thumbs.isEmpty) _empty(),
+                  for (var i = 0; i < thumbs.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 4),
+                    _real(thumbs[i]),
+                  ],
                 ],
-              ],
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

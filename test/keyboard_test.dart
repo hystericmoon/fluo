@@ -111,6 +111,16 @@ void main() {
     expect(find.textContaining('3 of 3'), findsOneWidget);
   });
 
+  testWidgets('the hint under the buttons says which way keeps and which discards', (tester) async {
+    setPhone(tester);
+    final repo = memRepo();
+    final album = repo.createAlbum('Adwam S2');
+    await seedShots(tester, repo, album.id, 1);
+    await tester.pumpWidget(host(TriageScreen(albumId: album.id), repo: repo));
+    await tester.pumpAndSettle();
+    expect(find.text('Flick right to keep, left to discard, or use the buttons'), findsOneWidget);
+  });
+
   testWidgets('keeping with the button does not raise the keyboard on the next card', (tester) async {
     setPhone(tester);
     final repo = memRepo();

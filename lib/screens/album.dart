@@ -44,15 +44,25 @@ class _AlbumScreenState extends State<AlbumScreen> {
 
   /// Hold (or tap twice) to delete. Albums takes over from here so the undo
   /// bar works the same as after a swipe.
-  Widget _deleteFooter() => Padding(
-    padding: const EdgeInsets.only(top: 8, bottom: 24),
-    child: HoldButton(
-      label: 'Hold to delete album',
-      icon: LucideIcons.trash2,
-      onConfirmed: () =>
-          Navigator.of(context).pop(DeleteAlbumRequest(widget.albumId)),
-    ),
-  );
+  /// Delete lives behind a menu in the header, away from the grid a thumb is
+  /// scrolling. The hold-to-confirm (or tap twice) stays inside it.
+  Future<void> _options() async {
+    final delete = await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close album options',
+      barrierColor: const Color(0xB3000000),
+      transitionDuration: const Duration(milliseconds: 120),
+      pageBuilder: (ctx, _, _) => const _AlbumOptions(),
+      transitionBuilder: (ctx, anim, _, child) =>
+          (MediaQuery.maybeDisableAnimationsOf(ctx) ?? false)
+              ? child
+              : FadeTransition(opacity: anim, child: child),
+    );
+    if (delete == true && mounted) {
+      Navigator.of(context).pop(DeleteAlbumRequest(widget.albumId));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +101,11 @@ class _AlbumScreenState extends State<AlbumScreen> {
             title: album?.name ?? 'Album',
             leading: backButton(context, label: 'Back to albums'),
             trailing: [
+              FluoIconButton(
+                icon: LucideIcons.ellipsis,
+                label: 'Album options',
+                onPressed: _options,
+              ),
               FluoButton(
                 label: 'Export',
                 icon: LucideIcons.upload,
@@ -157,12 +172,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
           ],
           Expanded(
             child: kept.isEmpty
-                ? Column(
-                    children: [
-                      Expanded(child: _EmptyAlbum(hasPending: pending > 0)),
-                      _deleteFooter(),
-                    ],
-                  )
+                ? _EmptyAlbum(hasPending: pending > 0)
                 : shown.isEmpty
                 ? Center(
                     child: Text(
@@ -215,7 +225,6 @@ class _AlbumScreenState extends State<AlbumScreen> {
                           },
                         ),
                       ),
-                      SliverToBoxAdapter(child: _deleteFooter()),
                     ],
                   ),
           ),
@@ -482,4 +491,65 @@ class _Segmented extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// The album's menu. Only Delete for now, behind a hold (or two taps) so a
+/// stray touch cannot remove an album. Pops `true` once confirmed.
+class _AlbumOptions extends StatelessWidget {
+  const _AlbumOptions();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Semantics(
+              scopesRoute: true,
+              namesRoute: true,
+              label: 'Album options',
+              explicitChildNodes: true,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: FluoColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: FluoColors.border),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Semantics(
+                      header: true,
+                      child: Text('Album options', style: fs(17, w: FontWeight.w600)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Deleting removes the album and its screens from this device. You can undo for a few seconds.',
+                      style: fs(13, c: FluoColors.fgMuted, h: 1.4),
+                    ),
+                    const SizedBox(height: 16),
+                    HoldButton(
+                      label: 'Hold to delete album',
+                      icon: LucideIcons.trash2,
+                      onConfirmed: () => Navigator.of(context).pop(true),
+                    ),
+                    const SizedBox(height: 8),
+                    FluoButton(
+                      label: 'Close',
+                      expand: true,
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

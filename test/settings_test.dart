@@ -169,6 +169,18 @@ void main() {
       expect(find.text('Neon lime is the default theme. The FLUO logo stays lime.'), findsOneWidget);
     });
 
+    testWidgets('the five themes sit in one row, each named, with a check on the chosen one', (tester) async {
+      await open(tester);
+      final tops = {
+        for (final n in ['Neon lime', 'Violet', 'Cyan', 'Orange', 'Pink']) n: tester.getTopLeft(find.text(n)).dy,
+      };
+      expect(tops.values.toSet().length, 1, reason: 'one row, not 2 + 2 + 1: $tops');
+      expect(find.byIcon(LucideIcons.check), findsOneWidget, reason: 'the chosen theme is marked by more than colour');
+      await tester.tap(find.text('Pink'));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(LucideIcons.check), findsOneWidget);
+    });
+
     testWidgets('privacy statement is shown and the bundled font licences open offline', (tester) async {
       await open(tester);
       expect(find.textContaining('Nothing leaves the phone except what you choose to share'), findsOneWidget);

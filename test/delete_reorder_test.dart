@@ -131,6 +131,12 @@ void main() {
     });
   });
 
+  /// Opens the menu in the album header that holds Delete.
+  Future<void> openAlbumOptions(WidgetTester tester) async {
+    await tester.tap(find.bySemanticsLabel('Album options'));
+    await tester.pumpAndSettle();
+  }
+
   group('deleting from inside an album (the button route)', () {
     Future<void> openThroughAlbums(WidgetTester tester, String name) async {
       await openAlbums(tester);
@@ -143,17 +149,19 @@ void main() {
       repo = memRepo();
       final a = await album(tester, 'Checkout', shots: 1);
       await openThroughAlbums(tester, 'Checkout');
+      expect(find.text('Hold to delete album'), findsNothing, reason: 'delete lives in the Album options menu, away from the grid');
+      await openAlbumOptions(tester);
       expect(find.text('Hold to delete album'), findsOneWidget);
 
       // Without holding: tap to arm, tap to confirm.
-      await tester.ensureVisible(find.text('Hold to delete album'));
       await tester.tap(find.text('Hold to delete album'));
       await tester.pump();
       expect(find.text('Tap again to confirm'), findsOneWidget);
       expect(repo.getAlbum(a.id), isNotNull);
       await tester.tap(find.text('Tap again to confirm'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400)); // the screen closes
+      await tester.pump(const Duration(milliseconds: 400)); // the menu closes
+      await tester.pump(const Duration(milliseconds: 400)); // then the album screen
 
       expect(find.text('Albums'), findsOneWidget, reason: 'back on the list');
       expect(find.textContaining('Deleted Checkout'), findsOneWidget);
@@ -168,12 +176,13 @@ void main() {
       repo = memRepo();
       final a = await album(tester, 'Checkout', shots: 1);
       await openThroughAlbums(tester, 'Checkout');
-      await tester.ensureVisible(find.text('Hold to delete album'));
+      await openAlbumOptions(tester);
       final g = await tester.startGesture(tester.getCenter(find.text('Hold to delete album')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 1000));
       await g.up();
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.textContaining('Deleted Checkout'), findsOneWidget);
       await tester.pump(const Duration(seconds: 7));
@@ -187,7 +196,21 @@ void main() {
       await album(tester, 'Empty');
       await openThroughAlbums(tester, 'Empty');
       expect(find.text('No screens yet'), findsOneWidget);
+      await openAlbumOptions(tester);
       expect(find.text('Hold to delete album'), findsOneWidget);
+    });
+
+    testWidgets('Close leaves the album alone', (tester) async {
+      setPhone(tester);
+      repo = memRepo();
+      final a = await album(tester, 'Checkout', shots: 1);
+      await openThroughAlbums(tester, 'Checkout');
+      await openAlbumOptions(tester);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(find.text('Hold to delete album'), findsNothing);
+      expect(find.bySemanticsLabel('Album options'), findsOneWidget, reason: 'back on the album, with its menu button');
+      expect(repo.getAlbum(a.id), isNotNull);
     });
   });
 
