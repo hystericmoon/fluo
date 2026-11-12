@@ -80,9 +80,12 @@ class _EditorScreenState extends State<EditorScreen> {
           color: FluoColors.bg,
           child: SafeArea(
             bottom: false,
-            child: LayoutBuilder(
+            // Lift the editor above the keyboard so the caption and pin note
+            // fields stay in view while typing.
+            child: Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+              child: LayoutBuilder(
               builder: (context, box) => SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: box.maxHeight),
                   child: IntrinsicHeight(
@@ -121,6 +124,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 ),
               ),
             ),
+              ),
           ),
         );
       },

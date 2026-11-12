@@ -76,7 +76,18 @@ class _TriageScreenState extends State<TriageScreen> {
 
     return ScreenFrame(
       child: LayoutBuilder(
-        builder: (context, box) => SingleChildScrollView(
+        builder: (context, box) {
+          // The card takes the room the rest of the screen leaves, so with the
+          // keyboard up the name field and the Keep and Discard buttons stay
+          // in view (the card gets shorter, never the controls). Everything
+          // but the card is about 260dp at normal text size.
+          final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
+          final cardHeight = (box.maxHeight - 260 * textScale).clamp(180.0, 500.0);
+          return SingleChildScrollView(
+          // The name field's focus ring is drawn 3dp outside the field; the
+          // default clip would cut it at the screen margin.
+          clipBehavior: Clip.none,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: box.maxHeight),
             child: Column(
@@ -92,7 +103,8 @@ class _TriageScreenState extends State<TriageScreen> {
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 500,
+                  key: const ValueKey('triage-card'),
+                  height: cardHeight,
                   child: cur == null
                       ? _AllSorted(
                           kept: t.keptCount,
@@ -118,6 +130,7 @@ class _TriageScreenState extends State<TriageScreen> {
                     height: 48,
                     fill: FluoColors.surface,
                     fontSize: 16,
+                    autocorrect: false,
                     onChanged: t.rename,
                   ),
                   const SizedBox(height: 16),
@@ -184,7 +197,8 @@ class _TriageScreenState extends State<TriageScreen> {
               ],
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }
