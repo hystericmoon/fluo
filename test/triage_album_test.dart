@@ -273,7 +273,7 @@ void main() {
       await tester.pumpWidget(host(AlbumScreen(albumId: a.id), repo: repo));
       expect(find.text('Welcome'), findsOneWidget);
       expect(find.text('Cart'), findsOneWidget);
-      expect(find.text('All 2'), findsOneWidget, reason: 'the discarded shot is not counted');
+      expect(find.text('2 screens'), findsOneWidget, reason: 'the discarded shot is not counted');
       expect(find.text('1'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(find.text('3'), findsNothing);
@@ -297,6 +297,17 @@ void main() {
       await tester.tap(find.text('Flow order'));
       await tester.pumpAndSettle();
       expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('with no pins the severity filters stay hidden and a plain screen count shows', (tester) async {
+      setPhone(tester);
+      final (repo, a, _) = await kept(tester, 3);
+      await tester.pumpWidget(host(AlbumScreen(albumId: a.id), repo: repo));
+      expect(find.text('3 screens'), findsOneWidget);
+      expect(find.textContaining('Bug'), findsNothing);
+      expect(find.textContaining('UX'), findsNothing);
+      expect(find.textContaining('A11y'), findsNothing);
+      expect(find.textContaining('All '), findsNothing);
     });
 
     testWidgets('severity chips count screens, filter them, and keep the flow numbers', (tester) async {
@@ -440,7 +451,7 @@ void main() {
 
     await tester.tap(find.text('Open album'));
     await tester.pumpAndSettle();
-    expect(find.text('All 6'), findsOneWidget);
+    expect(find.text('6 screens'), findsOneWidget);
     expect(find.text('Welcome'), findsOneWidget);
     expect(find.text('Cart'), findsOneWidget);
     expect(find.text('Untitled'), findsNWidgets(4));

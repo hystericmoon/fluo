@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fluo/data/models.dart';
 import 'package:fluo/screens/albums.dart';
 import 'package:fluo/screens/editor.dart';
 import 'package:fluo/screens/triage.dart';
@@ -83,7 +84,47 @@ void main() {
     expect(tester.getRect(find.text('Create')).bottom, lessThanOrEqualTo(keyboardTop));
   });
 
-  testWidgets('the Done key on the keyboard closes it', (tester) async {
+  testWidgets('the keyboard action key keeps the shot, goes to the next card and keeps the keyboard up', (tester) async {
+    setPhone(tester);
+    final repo = memRepo();
+    final album = repo.createAlbum('Adwam S2');
+    final shots = await seedShots(tester, repo, album.id, 3);
+    await tester.pumpWidget(host(TriageScreen(albumId: album.id), repo: repo));
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse, reason: 'opening Triage does not raise the keyboard');
+
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'Cart');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(repo.getShot(shots[0].id)!.status, ShotStatus.kept);
+    expect(repo.getShot(shots[0].id)!.name, 'Cart');
+    expect(find.textContaining('2 of 3'), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isTrue, reason: 'the next name field is already focused');
+
+    // Type, enter, type, enter.
+    await tester.enterText(find.byType(TextField), 'Pay');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(repo.getShot(shots[1].id)!.name, 'Pay');
+    expect(find.textContaining('3 of 3'), findsOneWidget);
+  });
+
+  testWidgets('keeping with the button does not raise the keyboard on the next card', (tester) async {
+    setPhone(tester);
+    final repo = memRepo();
+    final album = repo.createAlbum('Adwam S2');
+    await seedShots(tester, repo, album.id, 2);
+    await tester.pumpWidget(host(TriageScreen(albumId: album.id), repo: repo));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('2 of 2'), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
+  testWidgets('keeping the last shot with the keyboard action key lands on All sorted', (tester) async {
     setPhone(tester);
     final repo = memRepo();
     final album = repo.createAlbum('Adwam S2');
@@ -91,11 +132,9 @@ void main() {
     await tester.pumpWidget(host(TriageScreen(albumId: album.id), repo: repo));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(TextField));
-    await tester.pumpAndSettle();
-    expect(FocusManager.instance.primaryFocus?.hasPrimaryFocus, isTrue);
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsOneWidget);
-    expect(tester.testTextInput.isVisible, isFalse);
+    expect(find.text('Open album'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 }

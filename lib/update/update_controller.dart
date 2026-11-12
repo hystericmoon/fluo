@@ -51,6 +51,11 @@ class UpdateController extends ChangeNotifier {
 
   UpdateState get state => _state;
 
+  /// False when this copy can never update itself from inside the app: not
+  /// Android, or not installed from Google Play. Settings hides the update
+  /// controls then, since they could only say no.
+  bool get canUpdate => source is! NoUpdateSource && !settings.updatesUnsupported;
+
   void _set(UpdateState s) {
     if (_disposed) return;
     _state = s;
@@ -74,8 +79,10 @@ class UpdateController extends ChangeNotifier {
     _set(UpdateState.checking);
     try {
       final available = await source.checkAvailable();
+      settings.setUpdatesUnsupported(false);
       _set(available ? UpdateState.available : UpdateState.upToDate);
     } on UpdateUnsupported {
+      settings.setUpdatesUnsupported(true);
       _set(UpdateState.unavailable);
     } catch (_) {
       _set(UpdateState.failed);

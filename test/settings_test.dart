@@ -247,12 +247,26 @@ void main() {
       expect(src.installs, 1);
     });
 
-    testWidgets('a sideloaded copy says updates come through Google Play', (tester) async {
+    testWidgets('a copy that cannot update itself drops the update controls once a check says so', (tester) async {
       final src = FakeUpdateSource()..unsupported = true;
       await open(tester, update: src);
       await tester.tap(find.text('Check for updates'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Updates come through Google Play'), findsOneWidget);
+      expect(find.text('Auto-update'), findsNothing);
+      expect(find.text('Wi-Fi only'), findsNothing);
+      expect(find.text('Check for updates'), findsNothing);
+      expect(find.textContaining('This copy does not update itself'), findsOneWidget);
+      expect(find.textContaining('Version 0.1.0'), findsOneWidget);
+    });
+
+    testWidgets('a copy known to be sideloaded shows no update controls from the first frame', (tester) async {
+      setPhone(tester);
+      repo = memRepo();
+      final st = AppSettings(repo)..setUpdatesUnsupported(true);
+      await tester.pumpWidget(host(const SettingsScreen(), repo: repo, settings: st));
+      await tester.pump();
+      expect(find.text('Auto-update'), findsNothing);
+      expect(find.textContaining('This copy does not update itself'), findsOneWidget);
     });
 
     testWidgets('a failed check says so and can be retried', (tester) async {

@@ -435,6 +435,8 @@ class FluoField extends StatefulWidget {
     this.onChanged,
     this.placeholder,
     this.autocorrect = true,
+    this.onSubmitted,
+    this.autofocus = false,
   });
   final String label;
   final String initial;
@@ -446,6 +448,12 @@ class FluoField extends StatefulWidget {
 
   /// Off for names, where autocorrect rewrites words it does not know.
   final bool autocorrect;
+
+  /// What the keyboard's action key does. By default it closes the keyboard.
+  final VoidCallback? onSubmitted;
+
+  /// Takes focus (and raises the keyboard) when it appears.
+  final bool autofocus;
 
   @override
   State<FluoField> createState() => _FluoFieldState();
@@ -486,8 +494,16 @@ class _FluoFieldState extends State<FluoField> {
               focusNode: _focus,
               initialValue: widget.initial,
               onChanged: widget.onChanged,
+              autofocus: widget.autofocus,
               textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _focus.unfocus(),
+              onSubmitted: (_) {
+                final go = widget.onSubmitted;
+                if (go == null) {
+                  _focus.unfocus();
+                } else {
+                  go();
+                }
+              },
               autocorrect: widget.autocorrect,
               placeholder: widget.placeholder == null
                   ? null

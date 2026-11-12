@@ -46,6 +46,29 @@ void main() {
       expect(c.state, UpdateState.unavailable);
     });
 
+    test('a copy that cannot update is remembered, so the controls stay hidden next launch', () async {
+      expect(c.canUpdate, isTrue, reason: 'assumed until a check says otherwise');
+      src.unsupported = true;
+      await c.checkNow();
+      expect(c.canUpdate, isFalse);
+      expect(settings.updatesUnsupported, isTrue);
+    });
+
+    test('a later successful check clears that', () async {
+      settings.setUpdatesUnsupported(true);
+      src.unsupported = false;
+      await c.checkNow();
+      expect(settings.updatesUnsupported, isFalse);
+      expect(c.canUpdate, isTrue);
+    });
+
+    test('a build with no update source (desktop) never offers updates', () async {
+      final desktop = UpdateController(
+          settings: settings, source: const NoUpdateSource(), network: net, appInfo: const FakeAppInfo());
+      addTearDown(desktop.dispose);
+      expect(desktop.canUpdate, isFalse);
+    });
+
     test('any other failure is "failed" and can be retried', () async {
       src.checkError = Exception('boom');
       await c.checkNow();

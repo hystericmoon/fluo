@@ -55,8 +55,25 @@ class _TriageScreenState extends State<TriageScreen> {
     super.dispose();
   }
 
-  void _do(void Function(TriageSession t) action) =>
-      setState(() => action(_t!));
+  /// True after the keyboard's action key kept a shot: the next card's name
+  /// field then takes focus, so naming a batch is type, enter, type, enter and
+  /// the keyboard never closes. Any other action (the buttons) clears it, so
+  /// the keyboard does not pop up by itself.
+  bool _typing = false;
+
+  void _do(void Function(TriageSession t) action) {
+    _typing = false;
+    setState(() => action(_t!));
+  }
+
+  /// The keyboard's action key (a check mark, like the Keep button): keep this
+  /// shot and go straight to the next one.
+  void _keepFromKeyboard() {
+    setState(() {
+      _typing = true;
+      _t!.keep();
+    });
+  }
 
   void _done() {
     // Replace this screen so Back from the album returns to Albums.
@@ -131,6 +148,8 @@ class _TriageScreenState extends State<TriageScreen> {
                     fill: FluoColors.surface,
                     fontSize: 16,
                     autocorrect: false,
+                    autofocus: _typing,
+                    onSubmitted: _keepFromKeyboard,
                     onChanged: t.rename,
                   ),
                   const SizedBox(height: 16),

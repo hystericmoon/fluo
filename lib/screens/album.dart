@@ -70,11 +70,15 @@ class _AlbumScreenState extends State<AlbumScreen> {
     int screensWith(Severity s) => kept
         .where((k) => (pins[k.id] ?? const []).any((p) => p.severity == s))
         .length;
-    final shown = _filter == null
+    // With no pins yet every severity filter would return nothing, so the chips
+    // stay hidden until there is something to filter.
+    final anyPins = Severity.values.any((s) => screensWith(s) > 0);
+    final filter = anyPins ? _filter : null;
+    final shown = filter == null
         ? numbered
         : [
             for (final e in numbered)
-              if ((pins[e.$2.id] ?? const []).any((p) => p.severity == _filter))
+              if ((pins[e.$2.id] ?? const []).any((p) => p.severity == filter))
                 e,
           ];
 
@@ -113,7 +117,13 @@ class _AlbumScreenState extends State<AlbumScreen> {
             ),
             const SizedBox(height: 14),
             // Wraps instead of scrolling: a chip half off-screen is not found.
-            Wrap(
+            if (!anyPins)
+              Text(
+                kept.length == 1 ? '1 screen' : '${kept.length} screens',
+                style: fs(13, c: FluoColors.fgMuted),
+              )
+            else
+              Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
@@ -132,7 +142,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                   ),
               ],
             ),
-            if (flow && _filter == null && kept.length > 1) ...[
+            if (flow && filter == null && kept.length > 1) ...[
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerLeft,
@@ -156,7 +166,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                 : shown.isEmpty
                 ? Center(
                     child: Text(
-                      'No screens with ${_filter!.label} pins',
+                      'No screens with ${filter!.label} pins',
                       style: fs(14, c: FluoColors.fgMuted),
                     ),
                   )
@@ -175,7 +185,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                           (context, i) {
                             final (n, shot) = shown[i];
                             final canMove =
-                                flow && _filter == null && kept.length > 1;
+                                flow && filter == null && kept.length > 1;
                             final k = n - 1; // place among the kept screens
                             return _Tile(
                               shot: shot,

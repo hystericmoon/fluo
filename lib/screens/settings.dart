@@ -35,7 +35,9 @@ class SettingsScreen extends StatelessWidget {
           FluoCard(
             radius: 16,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: _Updates(settings: settings, updates: updates),
+            child: updates.canUpdate
+                ? _Updates(settings: settings, updates: updates)
+                : _VersionOnly(version: updates.info?.toString()),
           ),
           const SizedBox(height: 16),
           const FluoCard(
@@ -149,6 +151,27 @@ class _Appearance extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Shown instead of the update controls when this copy cannot update itself
+/// (a sideloaded APK, or a desktop build). Controls that can only say no are
+/// worse than none.
+class _VersionOnly extends StatelessWidget {
+  const _VersionOnly({required this.version});
+  final String? version;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Semantics(header: true, child: Text('Version', style: fs(15, w: FontWeight.w600))),
+      const SizedBox(height: 6),
+      Text('Version ${version ?? '…'}', style: fs(15, w: FontWeight.w500)),
+      const SizedBox(height: 2),
+      Text('This copy does not update itself. To update, install the new version.',
+          style: fs(13, c: FluoColors.fgMuted, h: 1.4)),
+      const SizedBox(height: 4),
+    ]);
   }
 }
 

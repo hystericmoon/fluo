@@ -67,6 +67,17 @@ void main() {
   }
 
   group('placing and editing pins', () {
+    editorTest('each tool shows a short label, and Done is the one way out', (tester) async {
+      await openEditor(tester, repo, shot.id);
+      for (final label in ['Crop', 'Pen', 'Arrow', 'Box', 'Pin', 'Redact']) {
+        expect(find.text(label), findsOneWidget, reason: '$label under its icon');
+      }
+      // The label text is hidden from screen readers; the button keeps its own name.
+      expect(find.bySemanticsLabel('Pen'), findsOneWidget);
+      expect(find.bySemanticsLabel('Back to album'), findsNothing);
+      expect(find.text('Done'), findsOneWidget);
+    });
+
     editorTest('opens on the pin tool with the shot name and its place in the album', (tester) async {
       await openEditor(tester, repo, shot.id);
       expect(find.text('Cart'), findsOneWidget);
