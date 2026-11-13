@@ -1,10 +1,10 @@
-Last updated 2026-11-12
+Last updated 2026-11-13
 
 ## Hardware session 2026-11-12 (local Mac, Galaxy A55)
 - PR #15 merged (build number `0.1.0+2`); main later at `0.1.0+3` after PR #16. Analyze clean; tests passed (513 before PR #16, 521 after).
 - Phone: debug `0.1.0+2` installed and launched (versionCode 2, existing albums intact). It felt laggy: that was a debug (JIT) build. A release build `0.1.0+3` was installed; lag on release not yet judged.
-- macOS: `flutter build macos --debug` succeeds. DMG script not run: no Developer ID in the keychain yet.
-- NOT done (needs hands): Settings and Album-options check, keyboard checks, recents, real screenshot gesture, TalkBack script, Mac folder picker across restart, real drag and drop, Mac desktop layout in a real window, DMG notarisation.
+- macOS: `flutter build macos --debug` succeeds. Signed/notarised DMG: DROPPED (no Developer ID); the unsigned `tool/make_dmg.sh` DMG is what ships.
+- NOT done (needs hands): Settings and Album-options check, keyboard checks, recents, real screenshot gesture, TalkBack script, Mac folder picker across restart, real drag and drop, Mac desktop layout in a real window. (DMG notarisation dropped.)
 
 ## macOS desktop layout (branch claude/macos-desktop-ui, build 0.1.0+3)
 - DONE: the Mac app has its own layout in windows 900 wide or more: sidebar (wordmark, New album, session card, albums, Settings), centre album grid or flow with severity chips, and an inspector (preview, name, caption, pins, Edit marks, Discard; summary when nothing is selected, bulk Discard for a multi-selection). Narrower windows and Android keep the phone UI. Code: `lib/desktop/` (`DesktopShell`, `DesktopScope`); gated by `FluoApp(desktop:)`, set only from `main()` on macOS, so tests and phones are untouched. Window opens 1280x820.
@@ -21,7 +21,7 @@ PRs #13 and #14 are merged into main. Everything is pushed. Nothing below has ru
 1. Build main on the Mac and install on the phone (`flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk`). The build number is now `0.1.0+2`, so Settings shows `0.1.0 (2)` on this build and `0.1.0 (1)` on older ones; bump it again for each build you install. On a sideloaded copy Settings should show only a Version note, and the Album header should have a `...` (Album options) button next to Export.
 2. Check on the phone: the keyboard never covers a field (Triage name, editor caption and pin note, New album); in Triage the keyboard's check key keeps the shot, goes to the next card and the keyboard stays up; the buttons do not raise it.
 3. TalkBack script in `docs/accessibility.md`; swipe the app out of recents; a real screenshot gesture.
-4. macOS: folder picker across a restart; a real drag and drop under the sandbox; then `DEVELOPER_ID=... NOTARY_PROFILE=... tool/make_dmg.sh` (setup in `docs/release.md`, never run).
+4. macOS: folder picker across a restart; a real drag and drop under the sandbox. DROPPED: the signed/notarised DMG (no Developer ID); the signing path in `tool/make_dmg.sh` and `docs/release.md` stays but is unused.
 5. Open: the audit page said Triage had no drag cue; it does (Keep and Discard stamps while dragging), only the hint text was missing, now fixed.
 Dev environment note: the cloud clone only fetched `main`, so the stop hook thought pushed branches were unpushed. `git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'` fixes it. A fresh clone does not have that.
 
